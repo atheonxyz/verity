@@ -9,3 +9,10 @@ xcuserdata/
 Examples/BasicProof/BasicProof.xcodeproj/
 Examples/Showcase/Showcase.xcodeproj/
 zkffi/target/
+
+# Android / Gradle
+.gradle/
+.idea/
+build/
+local.properties
+*.so
