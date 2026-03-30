@@ -1,8 +1,8 @@
 # Verity SDK
 
-[![Core Build](https://github.com/atheonxyz/verity/actions/workflows/core-build.yml/badge.svg)](https://github.com/atheonxyz/verity/actions/workflows/core-build.yml)
-[![Swift](https://github.com/atheonxyz/verity/actions/workflows/sdk-swift.yml/badge.svg)](https://github.com/atheonxyz/verity/actions/workflows/sdk-swift.yml)
-[![Kotlin](https://github.com/atheonxyz/verity/actions/workflows/sdk-kotlin.yml/badge.svg)](https://github.com/atheonxyz/verity/actions/workflows/sdk-kotlin.yml)
+[![CI](https://github.com/atheonxyz/verity/actions/workflows/ci.yml/badge.svg)](https://github.com/atheonxyz/verity/actions/workflows/ci.yml)
+[![Security](https://github.com/atheonxyz/verity/actions/workflows/security.yml/badge.svg)](https://github.com/atheonxyz/verity/actions/workflows/security.yml)
+[![Nightly](https://github.com/atheonxyz/verity/actions/workflows/nightly.yml/badge.svg)](https://github.com/atheonxyz/verity/actions/workflows/nightly.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Zero-knowledge proof SDK for **iOS**, **Android**, and **JavaScript**. One API, multiple proving backends, every platform.
@@ -86,8 +86,8 @@ import { Verity, Backend } from '@atheon/verity';
 
 const verity = await Verity.create(Backend.Barretenberg);
 const scheme = await verity.prepare(circuitJSON);
-const proof  = await verity.prove(scheme.prover, { a: 1, b: 2 });
-const valid  = await verity.verify(scheme.verifier, proof);
+const proof  = await scheme.prover.prove({ a: 1, b: 2 });
+const valid  = await scheme.verifier.verify(proof);
 scheme.dispose();
 ```
 

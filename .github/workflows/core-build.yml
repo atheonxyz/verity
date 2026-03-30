@@ -1,99 +1,134 @@
-name: Core Build
+name: Core Build (reusable)
 
 on:
   workflow_call:
     inputs:
       targets:
-        description: "Comma-separated targets: ios,android,wasm,native"
+        description: "Comma-separated: ios,android,wasm,native"
         required: false
         default: "ios,android,wasm,native"
         type: string
-  push:
-    paths:
-      - "core/**"
-  pull_request:
-    paths:
-      - "core/**"
+      rust-toolchain:
+        description: "Rust toolchain to use"
+        required: false
+        default: "nightly"
+        type: string
 
 jobs:
   build-ios:
-    if: contains(inputs.targets || 'ios', 'ios')
+    if: contains(inputs.targets, 'ios')
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ inputs.rust-toolchain }}
           targets: aarch64-apple-ios,aarch64-apple-ios-sim
       - uses: actions/cache@v4
         with:
-          path: core/target
-          key: rust-ios-${{ hashFiles('core/Cargo.lock') }}
-      - name: Build for iOS
+          path: |
+            core/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: rust-ios-${{ inputs.rust-toolchain }}-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: rust-ios-${{ inputs.rust-toolchain }}-
+      - name: Build iOS
+        run: bash core/build/build-ios.sh
+      - name: Record artifact sizes
         run: |
-          cd core
-          cargo build --release --target aarch64-apple-ios
-          cargo build --release --target aarch64-apple-ios-sim
+          echo "## iOS Artifact Sizes" >> $GITHUB_STEP_SUMMARY
+          find output/ -name '*.a' -o -name '*.xcframework' | while read f; do
+            size=$(du -sh "$f" | cut -f1)
+            echo "- \`$(basename $f)\`: $size" >> $GITHUB_STEP_SUMMARY
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: core-ios
-          path: core/target/*/release/lib*.a
+          path: output/
+          retention-days: 7
 
   build-android:
-    if: contains(inputs.targets || 'android', 'android')
+    if: contains(inputs.targets, 'android')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ inputs.rust-toolchain }}
           targets: aarch64-linux-android,x86_64-linux-android
       - uses: actions/cache@v4
         with:
-          path: core/target
-          key: rust-android-${{ hashFiles('core/Cargo.lock') }}
-      - name: Build for Android
+          path: |
+            core/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: rust-android-${{ inputs.rust-toolchain }}-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: rust-android-${{ inputs.rust-toolchain }}-
+      - name: Build Android
         run: bash core/build/build-android.sh
+      - name: Record artifact sizes
+        run: |
+          echo "## Android Artifact Sizes" >> $GITHUB_STEP_SUMMARY
+          find output/android -name '*.so' -o -name '*.a' | while read f; do
+            size=$(du -sh "$f" | cut -f1)
+            echo "- \`$(basename $(dirname $f))/$(basename $f)\`: $size" >> $GITHUB_STEP_SUMMARY
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: core-android
           path: output/android/
+          retention-days: 7
 
   build-wasm:
-    if: contains(inputs.targets || 'wasm', 'wasm')
+    if: contains(inputs.targets, 'wasm')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: ${{ inputs.rust-toolchain }}
           targets: wasm32-unknown-unknown
       - name: Install wasm-pack
-        run: cargo install wasm-pack
+        run: cargo install wasm-pack --locked
       - uses: actions/cache@v4
         with:
-          path: core/target
-          key: rust-wasm-${{ hashFiles('core/Cargo.lock') }}
-      - name: Build for WASM
+          path: |
+            core/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: rust-wasm-${{ inputs.rust-toolchain }}-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: rust-wasm-${{ inputs.rust-toolchain }}-
+      - name: Build WASM
         run: bash core/build/build-wasm.sh
       - uses: actions/upload-artifact@v4
         with:
           name: core-wasm
           path: output/wasm/
+          retention-days: 7
 
   build-native:
-    if: contains(inputs.targets || 'native', 'native')
+    if: contains(inputs.targets, 'native')
     strategy:
       matrix:
         os: [macos-14, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ inputs.rust-toolchain }}
       - uses: actions/cache@v4
         with:
-          path: core/target
-          key: rust-native-${{ matrix.os }}-${{ hashFiles('core/Cargo.lock') }}
-      - name: Build for host
+          path: |
+            core/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: rust-native-${{ matrix.os }}-${{ inputs.rust-toolchain }}-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: rust-native-${{ matrix.os }}-${{ inputs.rust-toolchain }}-
+      - name: Build native
         run: bash core/build/build-native.sh
       - uses: actions/upload-artifact@v4
         with:
           name: core-native-${{ matrix.os }}
           path: core/target/release/lib*.a
+          retention-days: 7

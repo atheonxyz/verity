@@ -1,0 +1,80 @@
+name: Release JS SDK
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (skip publish)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate tag
+        id: version
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            echo "Dry run — skipping tag check"
+            exit 0
+          fi
+
+          TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
+          if [[ "$TAG" != "v$VERSION" ]]; then
+            echo "::error::Current commit is not tagged v$VERSION (got: '$TAG'). Tag first, then release."
+            exit 1
+          fi
+      - name: Check version consistency
+        run: bash scripts/check-versions.sh
+
+  build-and-test:
+    needs: validate
+    uses: ./.github/workflows/core-build.yml
+    with:
+      targets: "wasm,native"
+
+  test:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Install, lint, test
+        run: |
+          cd sdks/js
+          npm ci
+          npm run lint
+          npm test
+
+  publish:
+    needs: [validate, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Publish to npm
+        if: ${{ !inputs.dry_run }}
+        run: |
+          cd sdks/js
+          npm ci
+          npm run build
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Dry run summary
+        if: ${{ inputs.dry_run }}
+        run: echo "Dry run complete. Would publish v${{ needs.validate.outputs.version }} to npm." >> $GITHUB_STEP_SUMMARY

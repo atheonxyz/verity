@@ -1,0 +1,55 @@
+name: PR Quality
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+concurrency:
+  group: pr-quality-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check CHANGELOG updated
+        run: |
+          if git diff --name-only origin/main...HEAD | grep -q '^CHANGELOG.md$'; then
+            echo "CHANGELOG.md updated."
+            exit 0
+          fi
+
+          LABELS=$(gh pr view ${{ github.event.pull_request.number }} --json labels -q '.labels[].name' 2>/dev/null || echo "")
+          if echo "$LABELS" | grep -q "no-changelog"; then
+            echo "Labeled 'no-changelog' — skipping."
+            exit 0
+          fi
+
+          echo "::warning::CHANGELOG.md not updated. Add changes or label PR with 'no-changelog'."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pr-size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check PR size
+        run: |
+          ADDITIONS=$(git diff --numstat origin/main...HEAD | awk '{s+=$1} END {print s+0}')
+          DELETIONS=$(git diff --numstat origin/main...HEAD | awk '{s+=$2} END {print s+0}')
+          TOTAL=$((ADDITIONS + DELETIONS))
+
+          echo "PR size: +$ADDITIONS / -$DELETIONS ($TOTAL lines changed)"
+          echo "## PR Size: $TOTAL lines changed" >> $GITHUB_STEP_SUMMARY
+          echo "+$ADDITIONS / -$DELETIONS" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$TOTAL" -gt 1000 ]; then
+            echo "::warning::Large PR ($TOTAL lines). Consider splitting into smaller PRs."
+          elif [ "$TOTAL" -gt 500 ]; then
+            echo "::notice::Medium PR ($TOTAL lines)."
+          fi
