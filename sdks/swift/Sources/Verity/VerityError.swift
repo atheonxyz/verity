@@ -1,7 +1,7 @@
 import Foundation
 
 /// Errors returned by Verity operations.
-public enum VerityError: LocalizedError {
+public enum VerityError: LocalizedError, Equatable {
     /// Library not initialized.
     case notInitialized
     /// Invalid input provided to an FFI function.
@@ -18,44 +18,50 @@ public enum VerityError: LocalizedError {
     case compilationFailed(String)
     /// Unknown or unregistered backend.
     case unknownBackend
+    /// Memory allocation failed.
+    case outOfMemory
     /// Unknown FFI error with raw code.
     case ffiError(code: Int32)
 
     public var errorDescription: String? {
         switch self {
         case .notInitialized:
-            return "Verity not initialized."
+            return "Verity not initialized. Create a Verity instance first: try Verity(backend: .provekit)"
         case .invalidInput(let msg):
             return "Invalid input: \(msg)"
         case .schemeReadError:
-            return "Failed to read scheme/circuit file"
+            return "Failed to read scheme or circuit file. Check that the file path exists and is readable."
         case .proofFailed(let msg):
             return "Proof generation failed: \(msg)"
         case .verificationFailed:
-            return "Proof verification failed"
+            return "Proof verification failed."
         case .serializationError:
-            return "Serialization error"
+            return "Serialization error. The data may be corrupted or from an incompatible version."
         case .compilationFailed(let msg):
-            return "Compilation failed: \(msg)"
+            return "Circuit compilation failed: \(msg). Ensure the circuit JSON was produced by `nargo compile`."
         case .unknownBackend:
-            return "Unknown or unregistered backend"
+            return "Unknown backend. Use .provekit or .barretenberg."
+        case .outOfMemory:
+            return "Memory allocation failed. Consider configuring memory limits with Verity.configureMemory()."
         case .ffiError(let code):
-            return "FFI error code: \(code)"
+            return "Internal FFI error (code \(code)). Please report this at https://github.com/atheonxyz/verity/issues"
         }
     }
 
     /// Map an FFI error code to a typed Swift error.
-    static func fromCode(_ code: Int32) -> VerityError {
+    internal static func fromCode(_ code: Int32) -> VerityError {
         switch code {
-        case 1: return .invalidInput("null pointer or empty data")
+        case 0: preconditionFailure("VerityError.fromCode called with success code 0")
+        case 1: return .invalidInput("null pointer or empty data — check that all paths and buffers are non-empty")
         case 2: return .schemeReadError
-        case 3: return .invalidInput("witness read error")
+        case 3: return .invalidInput("failed to parse witness/input file — check TOML syntax")
         case 4: return .proofFailed("proof generation or verification error")
         case 5: return .serializationError
-        case 6: return .invalidInput("UTF-8 error")
-        case 7: return .invalidInput("file write error")
+        case 6: return .invalidInput("string contains invalid UTF-8")
+        case 7: return .invalidInput("file write error — check that the destination directory exists and is writable")
         case 8: return .compilationFailed("circuit compilation error")
         case 9: return .unknownBackend
+        case 10: return .outOfMemory
         default: return .ffiError(code: code)
         }
     }

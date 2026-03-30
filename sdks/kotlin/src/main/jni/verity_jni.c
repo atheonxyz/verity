@@ -6,6 +6,7 @@
  */
 
 #include <jni.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "verity_ffi.h"
@@ -32,6 +33,14 @@ static void throw_verity_error(JNIEnv *env, int code) {
     jclass cls = (*env)->FindClass(env, "com/atheon/verity/VerityException");
     if (cls == NULL) {
         (*env)->ExceptionClear(env);
+        /* Fall back to RuntimeException if VerityException class not found */
+        jclass rte = (*env)->FindClass(env, "java/lang/RuntimeException");
+        if (rte != NULL) {
+            char msg[64];
+            snprintf(msg, sizeof(msg), "Verity FFI error (code %d)", code);
+            (*env)->ThrowNew(env, rte, msg);
+            (*env)->DeleteLocalRef(env, rte);
+        }
         return;
     }
     jmethodID fromCode = (*env)->GetStaticMethodID(env, cls, "fromCode",
@@ -39,12 +48,23 @@ static void throw_verity_error(JNIEnv *env, int code) {
     if (fromCode == NULL) {
         (*env)->DeleteLocalRef(env, cls);
         (*env)->ExceptionClear(env);
+        jclass rte = (*env)->FindClass(env, "java/lang/RuntimeException");
+        if (rte != NULL) {
+            char msg[64];
+            snprintf(msg, sizeof(msg), "Verity FFI error (code %d)", code);
+            (*env)->ThrowNew(env, rte, msg);
+            (*env)->DeleteLocalRef(env, rte);
+        }
         return;
     }
     jthrowable exc = (jthrowable)(*env)->CallStaticObjectMethod(env, cls, fromCode, (jint)code);
     (*env)->DeleteLocalRef(env, cls);
+    if ((*env)->ExceptionCheck(env)) {
+        return; /* fromCode() itself threw; let that propagate */
+    }
     if (exc != NULL) {
         (*env)->Throw(env, exc);
+        (*env)->DeleteLocalRef(env, exc);
     }
 }
 
@@ -52,6 +72,12 @@ static void throw_verity_error(JNIEnv *env, int code) {
 /*  Lifecycle                                                         */
 /* ------------------------------------------------------------------ */
 
+/*
+ * Thread-safety note: setenv() is not thread-safe on Android (bionic libc).
+ * This is only called from Kotlin's loadLibrary() which is protected by
+ * synchronized(Companion), ensuring single-threaded access. Do not call
+ * this function outside that synchronized context.
+ */
 JNIEXPORT void JNICALL
 Java_com_atheon_verity_Verity_nativeConfigureHome(
     JNIEnv *env, jclass clazz, jstring homeDir)
@@ -128,7 +154,7 @@ Java_com_atheon_verity_Verity_nativeProveToml(
     }
 
     VerityProver *prover = (VerityProver *)(uintptr_t)proverHandle;
-    VerityBuf buf = { .ptr = NULL, .len = 0, .cap = 0 };
+    VerityBuf buf = { .ptr = NULL, .len = 0, .cap = 0, .backend = 0 };
     int code = verity_prove_toml(prover, input, &buf);
 
     release_cstr(env, inputPath, input);
@@ -179,7 +205,7 @@ Java_com_atheon_verity_Verity_nativeProveJson(
     }
 
     VerityProver *prover = (VerityProver *)(uintptr_t)proverHandle;
-    VerityBuf buf = { .ptr = NULL, .len = 0, .cap = 0 };
+    VerityBuf buf = { .ptr = NULL, .len = 0, .cap = 0, .backend = 0 };
     int code = verity_prove_json(prover, json, &buf);
 
     release_cstr(env, inputsJson, json);
@@ -398,7 +424,7 @@ Java_com_atheon_verity_Verity_nativeSerializeProver(
         return NULL;
     }
 
-    VerityBuf buf = { .ptr = NULL, .len = 0, .cap = 0 };
+    VerityBuf buf = { .ptr = NULL, .len = 0, .cap = 0, .backend = 0 };
     int code = verity_serialize_prover(
         (const VerityProver *)(uintptr_t)proverHandle, &buf);
 
@@ -437,7 +463,7 @@ Java_com_atheon_verity_Verity_nativeSerializeVerifier(
         return NULL;
     }
 
-    VerityBuf buf = { .ptr = NULL, .len = 0, .cap = 0 };
+    VerityBuf buf = { .ptr = NULL, .len = 0, .cap = 0, .backend = 0 };
     int code = verity_serialize_verifier(
         (const VerityVerifier *)(uintptr_t)verifierHandle, &buf);
 
@@ -487,4 +513,41 @@ Java_com_atheon_verity_Verity_nativeFreeVerifier(
     if (verifierHandle != 0) {
         verity_free_verifier((VerityVerifier *)(uintptr_t)verifierHandle);
     }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Memory configuration (ProveKit-specific)                          */
+/* ------------------------------------------------------------------ */
+
+JNIEXPORT jint JNICALL
+Java_com_atheon_verity_Verity_nativeConfigureMemory(
+    JNIEnv *env, jclass clazz, jlong ramLimitBytes,
+    jboolean useFileBacked, jstring swapFilePath)
+{
+    const char *swap = jstring_to_cstr(env, swapFilePath);
+    int code = verity_pk_configure_memory(
+        (uintptr_t)ramLimitBytes, (bool)useFileBacked, swap);
+    release_cstr(env, swapFilePath, swap);
+    return (jint)code;
+}
+
+JNIEXPORT jobject JNICALL
+Java_com_atheon_verity_Verity_nativeGetMemoryStats(
+    JNIEnv *env, jclass clazz)
+{
+    uintptr_t ram_used = 0, swap_used = 0, peak_ram = 0;
+    int code = verity_pk_get_memory_stats(&ram_used, &swap_used, &peak_ram);
+    if (code != 0) {
+        throw_verity_error(env, code);
+        return NULL;
+    }
+
+    jclass cls = (*env)->FindClass(env, "com/atheon/verity/MemoryStats");
+    if (cls == NULL) return NULL;
+    jmethodID ctor = (*env)->GetMethodID(env, cls, "<init>", "(JJJ)V");
+    if (ctor == NULL) { (*env)->DeleteLocalRef(env, cls); return NULL; }
+    jobject result = (*env)->NewObject(env, cls, ctor,
+        (jlong)ram_used, (jlong)swap_used, (jlong)peak_ram);
+    (*env)->DeleteLocalRef(env, cls);
+    return result;
 }

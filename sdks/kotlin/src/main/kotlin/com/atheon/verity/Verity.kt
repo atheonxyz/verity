@@ -1,20 +1,34 @@
 package com.atheon.verity
 
 import java.util.concurrent.ConcurrentHashMap
-import org.json.JSONObject
 
 /**
  * Verity — generate and verify zero-knowledge proofs on Android.
  *
- * Usage:
+ * `Verity` is a factory for creating prover and verifier schemes.
+ * Use the schemes directly to generate and verify proofs.
+ *
  * ```kotlin
- * val verity = Verity(Backend.PROVEKIT)
- * val scheme = verity.prepare(circuit = "circuit.json")
- * val proof  = verity.prove(with = scheme.prover, input = "Prover.toml")
- * val valid  = verity.verify(with = scheme.verifier, proof = proof)
- * scheme.close()
+ * val verity  = Verity(Backend.PROVEKIT)
+ * val circuit = Circuit.load("circuit.json")
+ * val witness = Witness.load("Prover.toml")
+ * verity.prepare(circuit).use { scheme ->
+ *     val proof = scheme.prover.prove(witness)
+ *     val valid = scheme.verifier.verify(proof)
+ * }
  * ```
  */
+
+/** ProveKit memory usage statistics. */
+data class MemoryStats(
+    /** Current RAM usage in bytes. */
+    val ramUsed: Long,
+    /** Current swap file usage in bytes. */
+    val swapUsed: Long,
+    /** Peak RAM usage in bytes. */
+    val peakRam: Long,
+)
+
 class Verity(private val backend: Backend) {
 
     init {
@@ -24,64 +38,44 @@ class Verity(private val backend: Backend) {
     /**
      * Compile a circuit into prover + verifier schemes (no files written).
      *
+     * ```kotlin
+     * val circuit = Circuit.load("/path/to/circuit.json")
+     * val scheme  = verity.prepare(circuit)
+     * ```
+     *
+     * @param circuit A parsed [Circuit] (loaded via [Circuit.load]).
+     * @return A [PreparedScheme] containing both prover and verifier handles.
+     */
+    @Throws(VerityException::class)
+    fun prepare(circuit: Circuit): PreparedScheme {
+        val (path, isTemporary) = circuit.resolvePath()
+        require(path.isNotEmpty()) { "circuit path cannot be empty" }
+        try {
+            val handles = nativePrepare(backend.code, path)
+            val prover = ProverScheme(handles[0])
+            try {
+                return PreparedScheme(
+                    prover = prover,
+                    verifier = VerifierScheme(handles[1]),
+                )
+            } catch (e: Throwable) {
+                prover.close()
+                throw e
+            }
+        } finally {
+            if (isTemporary) java.io.File(path).delete()
+        }
+    }
+
+    /**
+     * Convenience: compile a circuit from a file path string.
+     *
      * @param circuit Path to compiled circuit (ACIR JSON from `nargo compile`).
      * @return A [PreparedScheme] containing both prover and verifier handles.
      */
-    fun prepare(circuit: String): PreparedScheme {
-        require(circuit.isNotEmpty()) { "circuit path cannot be empty" }
-        val handles = nativePrepare(backend.ordinal, circuit)
-        return PreparedScheme(
-            prover = ProverScheme(handles[0]),
-            verifier = VerifierScheme(handles[1]),
-        )
-    }
-
-    /**
-     * Generate a proof using a TOML input file.
-     *
-     * @param with Prover scheme from [prepare] or [loadProver].
-     * @param input Path to input file (.toml).
-     * @return Proof bytes.
-     */
-    fun prove(with: ProverScheme, input: String): ByteArray {
-        with.ensureOpen()
-        require(input.isNotEmpty()) { "input path cannot be empty" }
-        return nativeProveToml(with.handle, input)
-    }
-
-    /**
-     * Generate a proof using a map of inputs.
-     *
-     * Values are serialized to JSON and parsed by the circuit's ABI.
-     * Field elements should be strings (e.g., `"5"` or `"0x1a2b..."`).
-     *
-     * @param with Prover scheme from [prepare] or [loadProver].
-     * @param inputs Map of parameter names to values.
-     * @return Proof bytes.
-     */
-    fun prove(with: ProverScheme, inputs: Map<String, Any>): ByteArray {
-        with.ensureOpen()
-        val json = JSONObject(inputs).toString()
-        return nativeProveJson(with.handle, json)
-    }
-
-    /**
-     * Verify a proof.
-     *
-     * @param with Verifier scheme from [prepare] or [loadVerifier].
-     * @param proof Proof bytes (from [prove]).
-     * @return `true` if the proof is valid.
-     */
-    fun verify(with: VerifierScheme, proof: ByteArray): Boolean {
-        with.ensureOpen()
-        require(proof.isNotEmpty()) { "proof cannot be empty" }
-        val code = nativeVerify(with.handle, proof)
-        return when (code) {
-            0 -> true
-            4, 5 -> false  // PROOF_ERROR or SERIALIZATION_ERROR = invalid proof
-            else -> throw VerityException.fromCode(code)
-        }
-    }
+    @Throws(VerityException::class)
+    fun prepare(circuit: String): PreparedScheme =
+        prepare(Circuit.load(circuit))
 
     // -- Load from file --
 
@@ -91,9 +85,10 @@ class Verity(private val backend: Backend) {
      * @param path Path to saved prover file.
      * @return A [ProverScheme] handle.
      */
+    @Throws(VerityException::class)
     fun loadProver(path: String): ProverScheme {
         require(path.isNotEmpty()) { "path cannot be empty" }
-        return ProverScheme(nativeLoadProver(backend.ordinal, path))
+        return ProverScheme(nativeLoadProver(backend.code, path))
     }
 
     /**
@@ -102,9 +97,10 @@ class Verity(private val backend: Backend) {
      * @param path Path to saved verifier file.
      * @return A [VerifierScheme] handle.
      */
+    @Throws(VerityException::class)
     fun loadVerifier(path: String): VerifierScheme {
         require(path.isNotEmpty()) { "path cannot be empty" }
-        return VerifierScheme(nativeLoadVerifier(backend.ordinal, path))
+        return VerifierScheme(nativeLoadVerifier(backend.code, path))
     }
 
     // -- Load from bytes --
@@ -118,9 +114,10 @@ class Verity(private val backend: Backend) {
      * @param data Serialized prover bytes.
      * @return A [ProverScheme] handle.
      */
+    @Throws(VerityException::class)
     fun loadProver(data: ByteArray): ProverScheme {
         require(data.isNotEmpty()) { "data cannot be empty" }
-        return ProverScheme(nativeLoadProverBytes(backend.ordinal, data))
+        return ProverScheme(nativeLoadProverBytes(backend.code, data))
     }
 
     /**
@@ -132,12 +129,55 @@ class Verity(private val backend: Backend) {
      * @param data Serialized verifier bytes.
      * @return A [VerifierScheme] handle.
      */
+    @Throws(VerityException::class)
     fun loadVerifier(data: ByteArray): VerifierScheme {
         require(data.isNotEmpty()) { "data cannot be empty" }
-        return VerifierScheme(nativeLoadVerifierBytes(backend.ordinal, data))
+        return VerifierScheme(nativeLoadVerifierBytes(backend.code, data))
     }
 
     companion object {
+        /** The SDK version string (e.g., `"0.2.0"`). */
+        const val VERSION = "0.2.0"
+
+        /**
+         * Configure the ProveKit memory allocator.
+         *
+         * Call before creating a [Verity] instance to limit RAM usage and enable
+         * file-backed memory for large circuits on memory-constrained devices.
+         *
+         * Only applies to the ProveKit backend.
+         *
+         * @param ramLimitBytes Maximum RAM for the prover in bytes (0 = unlimited).
+         * @param useFileBacked If true, spill allocations to a swap file.
+         * @param swapFilePath Path to swap file (required if useFileBacked is true).
+         */
+        @JvmStatic
+        @JvmOverloads
+        @Throws(VerityException::class)
+        fun configureMemory(
+            ramLimitBytes: Long = 0,
+            useFileBacked: Boolean = false,
+            swapFilePath: String? = null,
+        ) {
+            loadLibrary()
+            val code = nativeConfigureMemory(ramLimitBytes, useFileBacked, swapFilePath ?: "")
+            if (code != 0) throw VerityException.fromCode(code)
+        }
+
+        /**
+         * Get current ProveKit memory usage statistics.
+         *
+         * Only applies to the ProveKit backend.
+         *
+         * @return A [MemoryStats] with current usage.
+         */
+        @JvmStatic
+        @Throws(VerityException::class)
+        fun memoryStats(): MemoryStats {
+            loadLibrary()
+            return nativeGetMemoryStats()
+        }
+
         @Volatile
         private var libraryLoaded = false
         private val initializedBackends: MutableSet<Int> = ConcurrentHashMap.newKeySet()
@@ -159,14 +199,14 @@ class Verity(private val backend: Backend) {
 
         private fun ensureInitialized(backend: Backend) {
             loadLibrary()
-            if (backend.ordinal !in initializedBackends) {
+            if (backend.code !in initializedBackends) {
                 synchronized(Companion) {
-                    if (backend.ordinal !in initializedBackends) {
-                        val code = nativeInit(backend.ordinal)
+                    if (backend.code !in initializedBackends) {
+                        val code = nativeInit(backend.code)
                         if (code != 0) {
-                            throw VerityException.FfiError(code)
+                            throw VerityException.fromCode(code)
                         }
-                        initializedBackends.add(backend.ordinal)
+                        initializedBackends.add(backend.code)
                     }
                 }
             }
@@ -182,13 +222,13 @@ class Verity(private val backend: Backend) {
         private external fun nativePrepare(backend: Int, circuitPath: String): LongArray
 
         @JvmStatic
-        private external fun nativeProveToml(proverHandle: Long, inputPath: String): ByteArray
+        internal external fun nativeProveToml(proverHandle: Long, inputPath: String): ByteArray
 
         @JvmStatic
-        private external fun nativeProveJson(proverHandle: Long, inputsJson: String): ByteArray
+        internal external fun nativeProveJson(proverHandle: Long, inputsJson: String): ByteArray
 
         @JvmStatic
-        private external fun nativeVerify(verifierHandle: Long, proof: ByteArray): Int
+        internal external fun nativeVerify(verifierHandle: Long, proof: ByteArray): Int
 
         @JvmStatic
         private external fun nativeLoadProver(backend: Int, path: String): Long
@@ -232,5 +272,11 @@ class Verity(private val backend: Backend) {
 
         @JvmStatic
         private external fun nativeFreeVerifier(verifierHandle: Long)
+
+        @JvmStatic
+        private external fun nativeConfigureMemory(ramLimitBytes: Long, useFileBacked: Boolean, swapFilePath: String): Int
+
+        @JvmStatic
+        private external fun nativeGetMemoryStats(): MemoryStats
     }
 }

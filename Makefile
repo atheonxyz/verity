@@ -50,9 +50,29 @@ release-kotlin: core-android
 release-js: core-wasm core-native
 	bash sdks/js/scripts/release.sh $(VERSION)
 
+# ── Lint & Format ─────────────────────────────────────────────────────
+
+.PHONY: lint fmt check
+
+lint:
+	cd core && cargo clippy --all-targets -- -D warnings
+	cd sdks/js && npm run lint 2>/dev/null || npx tsc --noEmit
+
+fmt:
+	cd core && cargo fmt
+	cd sdks/js && npx prettier --write src/ tests/ 2>/dev/null || true
+
+check: lint
+	cd core && cargo test --no-run
+	cd sdks/swift && swift build 2>/dev/null || true
+	cd sdks/js && npx tsc --noEmit
+
 # ── Utilities ──────────────────────────────────────────────────────────
 
-.PHONY: clean
+.PHONY: clean version
+
+version:
+	@cat VERSION
 
 clean:
 	rm -rf core/target

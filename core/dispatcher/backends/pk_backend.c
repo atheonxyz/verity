@@ -1,6 +1,7 @@
 /// ProveKit backend registration — connects pk_* functions to the vtable.
 
 #include "../verity_backend.h"
+#include <stddef.h>
 
 // ── Extern declarations for pk_* symbols (from VerityFFI xcframework) ──────
 
@@ -24,6 +25,12 @@ extern int  pk_verify(const PKVerifier *verifier, const uint8_t *proof_ptr, uint
 extern void pk_free_prover(PKProver *prover);
 extern void pk_free_verifier(PKVerifier *verifier);
 extern void pk_free_buf(PKBuf buf);
+
+// Verify PKBuf and RawBuf have identical layout (required for safe casts).
+_Static_assert(sizeof(PKBuf) == sizeof(RawBuf), "PKBuf and RawBuf size mismatch");
+_Static_assert(offsetof(PKBuf, ptr) == offsetof(RawBuf, ptr), "PKBuf.ptr offset mismatch");
+_Static_assert(offsetof(PKBuf, len) == offsetof(RawBuf, len), "PKBuf.len offset mismatch");
+_Static_assert(offsetof(PKBuf, cap) == offsetof(RawBuf, cap), "PKBuf.cap offset mismatch");
 
 // ── Thin wrappers (cast typed pointers to void*) ───────────────────────────
 

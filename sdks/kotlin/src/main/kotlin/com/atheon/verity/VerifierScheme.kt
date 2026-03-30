@@ -1,29 +1,58 @@
 package com.atheon.verity
 
+import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.read
+import kotlin.concurrent.write
+
 /**
  * Opaque handle to a compiled verifier scheme.
  *
  * Created by [Verity.prepare] or [Verity.loadVerifier].
- * Can be reused for multiple verify calls from any thread.
+ * Thread-safe: can be reused for concurrent verify calls.
  * Must be [close]d when no longer needed (or use [use]).
- * Do not call [close] while another thread is using this scheme.
  */
-class VerifierScheme internal constructor(internal val handle: Long) : AutoCloseable {
+class VerifierScheme internal constructor(private val handle: Long) : AutoCloseable {
 
-    @Volatile
+    private val lock = ReentrantReadWriteLock()
     private var closed = false
 
-    internal fun ensureOpen() {
+    internal fun <T> useHandle(block: (Long) -> T): T = lock.read {
         check(!closed) { "VerifierScheme is closed" }
+        block(handle)
     }
+
+    // MARK: - Verify
+
+    /**
+     * Verify a proof.
+     *
+     * ```kotlin
+     * val valid = verifier.verify(proof)
+     * ```
+     *
+     * @param proof A [Proof] from [ProverScheme.prove].
+     * @return `true` if proof is valid, `false` if mathematically invalid.
+     */
+    @Throws(VerityException::class)
+    fun verify(proof: Proof): Boolean = useHandle { handle ->
+        require(proof.data.isNotEmpty()) { "proof cannot be empty" }
+        val code = Verity.nativeVerify(handle, proof.data)
+        when (code) {
+            0 -> true
+            4 -> false  // PROOF_ERROR = proof is mathematically invalid
+            else -> throw VerityException.fromCode(code)
+        }
+    }
+
+    // MARK: - Save / Serialize
 
     /**
      * Save the verifier scheme to a file.
      *
      * @param path Destination file path.
      */
-    fun save(path: String) {
-        ensureOpen()
+    @Throws(VerityException::class)
+    fun save(path: String) = useHandle { handle ->
         val code = Verity.saveVerifier(handle, path)
         if (code != 0) throw VerityException.fromCode(code)
     }
@@ -36,18 +65,20 @@ class VerifierScheme internal constructor(internal val handle: Long) : AutoClose
      *
      * @return Serialized bytes.
      */
-    fun serialize(): ByteArray {
-        ensureOpen()
-        return Verity.serializeVerifier(handle)
+    @Throws(VerityException::class)
+    fun serialize(): ByteArray = useHandle { handle ->
+        Verity.serializeVerifier(handle)
     }
 
-    override fun close() {
-        synchronized(this) {
-            if (!closed) {
-                closed = true
-                Verity.freeVerifier(handle)
-            }
+    override fun close() = lock.write {
+        if (!closed) {
+            closed = true
+            Verity.freeVerifier(handle)
         }
     }
 
+    @Suppress("removal")
+    protected fun finalize() {
+        close()
+    }
 }

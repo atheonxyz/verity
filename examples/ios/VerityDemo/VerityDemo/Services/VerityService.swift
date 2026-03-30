@@ -2,12 +2,16 @@ import Foundation
 import Verity
 
 actor VerityService {
-    func generateAndVerify(circuit: Circuit, backend: Backend) async throws -> ProofResult {
+    func generateAndVerify(circuit: DemoCircuit, backend: Backend) async throws -> ProofResult {
         let prefix = circuit.filePrefix
         let circuitPath = bundlePath("\(prefix)_circuit", ext: "json")
         let inputPath = bundlePath("\(prefix)_Prover", ext: "toml")
 
         let verity = try Verity(backend: backend)
+
+        // Load circuit and witness
+        let circuitData = try Circuit.load(from: circuitPath)
+        let witness = try Witness.load(from: inputPath)
 
         // Prepare or load
         let prepareStart = CFAbsoluteTimeGetCurrent()
@@ -20,7 +24,7 @@ actor VerityService {
             prover = try verity.loadProver(from: pkpPath)
             verifier = try verity.loadVerifier(from: pkvPath)
         } else {
-            let scheme = try verity.prepare(circuit: circuitPath)
+            let scheme = try verity.prepare(circuit: circuitData)
             prover = scheme.prover
             verifier = scheme.verifier
         }
@@ -28,17 +32,17 @@ actor VerityService {
 
         // Prove
         let proveStart = CFAbsoluteTimeGetCurrent()
-        let proof = try verity.prove(with: prover, input: inputPath)
+        let proof = try prover.prove(witness: witness)
         let proveTime = CFAbsoluteTimeGetCurrent() - proveStart
 
         // Verify
         let verifyStart = CFAbsoluteTimeGetCurrent()
-        let isValid = try verity.verify(with: verifier, proof: proof)
+        let isValid = try verifier.verify(proof: proof)
         let verifyTime = CFAbsoluteTimeGetCurrent() - verifyStart
 
         return ProofResult(
             circuit: circuit, backend: backend,
-            proofBytes: proof,
+            proof: proof,
             prepareTime: prepareTime, proveTime: proveTime, verifyTime: verifyTime,
             isValid: isValid
         )

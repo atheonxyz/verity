@@ -4,10 +4,12 @@ import VerityDispatch
 /// Opaque handle to a compiled prover scheme.
 ///
 /// Created by ``Verity/prepare(circuit:)`` or ``Verity/loadProver(from:)``.
-/// Thread-safe. Automatically freed on deinit.
-/// Can be reused for multiple prove calls.
+/// Automatically freed on deinit. Can be reused for multiple prove calls.
+///
+/// Thread-safe: all operations are internally synchronized.
 public final class ProverScheme: @unchecked Sendable {
     internal let handle: OpaquePointer
+    private let lock = NSLock()
 
     internal init(handle: OpaquePointer) {
         self.handle = handle
@@ -17,12 +19,57 @@ public final class ProverScheme: @unchecked Sendable {
         verity_free_prover(handle)
     }
 
+    // MARK: - Prove
+
+    /// Generate a proof from witness values.
+    ///
+    /// ```swift
+    /// let witness = try Witness.load(from: "Prover.toml")
+    /// let proof   = try prover.prove(witness: witness)
+    /// ```
+    ///
+    /// - Parameter witness: A ``Witness`` containing the circuit's private inputs.
+    /// - Returns: A ``Proof`` containing the proof bytes.
+    public func prove(witness: Witness) throws -> Proof {
+        lock.lock()
+        defer { lock.unlock() }
+
+        var buf = VerityBuf(ptr: nil, len: 0, cap: 0, backend: 0)
+        let code: Int32
+
+        switch try witness.resolve() {
+        case .tomlPath(let path):
+            code = verity_prove_toml(handle, path, &buf)
+        case .json(let json):
+            code = verity_prove_json(handle, json, &buf)
+        }
+
+        defer { if buf.ptr != nil { verity_free_buf(buf) } }
+        guard code == 0 else { throw VerityError.fromCode(code) }
+        guard let ptr = buf.ptr, buf.len > 0 else {
+            throw VerityError.proofFailed("empty proof returned")
+        }
+
+        return Proof(data: Data(bytes: ptr, count: Int(buf.len)))
+    }
+
+    // MARK: - Save / Serialize
+
     /// Save the prover scheme to a file.
     ///
     /// - Parameter path: Destination file path.
     public func save(to path: String) throws {
+        lock.lock()
+        defer { lock.unlock() }
         let code = verity_save_prover(handle, path)
         guard code == 0 else { throw VerityError.fromCode(code) }
+    }
+
+    /// Save the prover scheme to a URL.
+    ///
+    /// - Parameter url: Destination file URL.
+    public func save(to url: URL) throws {
+        try save(to: url.path)
     }
 
     /// Serialize the prover scheme to bytes.
@@ -32,14 +79,15 @@ public final class ProverScheme: @unchecked Sendable {
     ///
     /// - Returns: Serialized bytes.
     public func serialize() throws -> Data {
-        var buf = VerityBuf(ptr: nil, len: 0, cap: 0)
+        lock.lock()
+        defer { lock.unlock() }
+        var buf = VerityBuf(ptr: nil, len: 0, cap: 0, backend: 0)
         let code = verity_serialize_prover(handle, &buf)
+        defer { if buf.ptr != nil { verity_free_buf(buf) } }
         guard code == 0 else { throw VerityError.fromCode(code) }
         guard let ptr = buf.ptr, buf.len > 0 else {
             throw VerityError.serializationError
         }
-        let data = Data(bytes: ptr, count: Int(buf.len))
-        verity_free_buf(buf)
-        return data
+        return Data(bytes: ptr, count: Int(buf.len))
     }
 }

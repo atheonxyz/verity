@@ -32,8 +32,9 @@ target/
 .DS_Store
 *.o
 
-# OMC state
+# AI tooling state
 .omc/
+docs/superpowers/
 
 # Examples (Xcode projects are generated)
 examples/ios/BasicProof/*.xcodeproj/

@@ -1,6 +1,7 @@
 /// Barretenberg backend registration — connects bb_* functions to the vtable.
 
 #include "../verity_backend.h"
+#include <stddef.h>
 
 // ── Extern declarations for bb_* symbols (from VerityFFI xcframework) ──────
 
@@ -23,6 +24,12 @@ extern int  bb_verify(const BBVerifier *verifier, const uint8_t *proof_ptr, uint
 extern void bb_free_prover(BBProver *prover);
 extern void bb_free_verifier(BBVerifier *verifier);
 extern void bb_free_buf(BBBuf buf);
+
+// Verify BBBuf and RawBuf have identical layout (required for safe casts).
+_Static_assert(sizeof(BBBuf) == sizeof(RawBuf), "BBBuf and RawBuf size mismatch");
+_Static_assert(offsetof(BBBuf, ptr) == offsetof(RawBuf, ptr), "BBBuf.ptr offset mismatch");
+_Static_assert(offsetof(BBBuf, len) == offsetof(RawBuf, len), "BBBuf.len offset mismatch");
+_Static_assert(offsetof(BBBuf, cap) == offsetof(RawBuf, cap), "BBBuf.cap offset mismatch");
 
 // ── BB has no separate init — SRS setup is lazy (inside prepare/prove) ─────
 

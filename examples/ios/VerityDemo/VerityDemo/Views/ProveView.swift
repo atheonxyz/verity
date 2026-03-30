@@ -2,7 +2,7 @@ import SwiftUI
 import Verity
 
 struct ProveView: View {
-    let circuit: Circuit
+    let circuit: DemoCircuit
 
     @State private var selectedBackend: Backend = .provekit
     @State private var result: ProofResult?

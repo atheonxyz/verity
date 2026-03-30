@@ -14,7 +14,7 @@ struct ResultView: View {
                     VStack(alignment: .leading) {
                         Text(result.isValid ? "Proof Valid" : "Proof Invalid")
                             .font(.headline)
-                        Text("\(result.proofBytes.count) bytes")
+                        Text("\(result.proofSize) bytes")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
