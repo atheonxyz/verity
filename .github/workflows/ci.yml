@@ -27,6 +27,7 @@ jobs:
           filters: |
             core:
               - 'core/**'
+              - '!core/deny.toml'
               - 'Makefile'
             swift:
               - 'sdks/swift/**'

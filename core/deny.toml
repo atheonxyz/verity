@@ -1,10 +1,10 @@
+# cargo-deny configuration (v2 format)
+# See: https://embarkstudios.github.io/cargo-deny/
+
 [advisories]
-vulnerability = "deny"
-unmaintained = "workspace"
-yanked = "deny"
+ignore = []
 
 [licenses]
-unlicensed = "deny"
 allow = [
     "MIT",
     "Apache-2.0",
