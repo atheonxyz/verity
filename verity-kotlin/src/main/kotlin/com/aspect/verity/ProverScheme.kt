@@ -4,15 +4,21 @@ package com.aspect.verity
  * Opaque handle to a compiled prover scheme.
  *
  * Created by [Verity.prepare] or [Verity.loadProver].
- * Can be reused for multiple prove calls from any thread.
- * Must be [close]d when no longer needed (or use [use]).
- * Do not call [close] while another thread is using this scheme.
+ * This class is thread-safe: it can be shared across threads for
+ * concurrent prove calls. Must be [close]d when no longer needed
+ * (or use [use]).
+ *
+ * A safety-net finalizer will free the native handle if [close] is
+ * never called, but relying on this is discouraged — always prefer
+ * explicit [close] or Kotlin's [use] block.
  */
+// Thread-safe: @Volatile closed flag + @Synchronized close/ensureOpen
 class ProverScheme internal constructor(internal val handle: Long) : AutoCloseable {
 
     @Volatile
     private var closed = false
 
+    @Synchronized
     internal fun ensureOpen() {
         check(!closed) { "ProverScheme is closed" }
     }
@@ -50,4 +56,9 @@ class ProverScheme internal constructor(internal val handle: Long) : AutoCloseab
         }
     }
 
+    protected fun finalize() {
+        if (!closed) {
+            close()
+        }
+    }
 }

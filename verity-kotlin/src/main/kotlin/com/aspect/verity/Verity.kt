@@ -30,10 +30,15 @@ class Verity(private val backend: Backend) {
     fun prepare(circuit: String): PreparedScheme {
         require(circuit.isNotEmpty()) { "circuit path cannot be empty" }
         val handles = nativePrepare(backend.ordinal, circuit)
-        return PreparedScheme(
-            prover = ProverScheme(handles[0]),
-            verifier = VerifierScheme(handles[1]),
-        )
+        val prover = ProverScheme(handles[0])
+        val verifier: VerifierScheme
+        try {
+            verifier = VerifierScheme(handles[1])
+        } catch (t: Throwable) {
+            prover.close()
+            throw t
+        }
+        return PreparedScheme(prover = prover, verifier = verifier)
     }
 
     /**
@@ -46,7 +51,11 @@ class Verity(private val backend: Backend) {
     fun prove(with: ProverScheme, input: String): ByteArray {
         with.ensureOpen()
         require(input.isNotEmpty()) { "input path cannot be empty" }
-        return nativeProveToml(with.handle, input)
+        val proof = nativeProveToml(with.handle, input)
+        if (proof.isEmpty()) {
+            throw VerityException.ProofFailed("empty proof returned")
+        }
+        return proof
     }
 
     /**
@@ -61,8 +70,15 @@ class Verity(private val backend: Backend) {
      */
     fun prove(with: ProverScheme, inputs: Map<String, Any>): ByteArray {
         with.ensureOpen()
-        val json = JSONObject(inputs).toString()
-        return nativeProveJson(with.handle, json)
+        require(inputs.isNotEmpty()) { "inputs map cannot be empty" }
+        val jsonObj = JSONObject(inputs)
+        val json = jsonObj.toString()
+        require(json.length > 2) { "inputs could not be serialized to valid JSON" }
+        val proof = nativeProveJson(with.handle, json)
+        if (proof.isEmpty()) {
+            throw VerityException.ProofFailed("empty proof returned")
+        }
+        return proof
     }
 
     /**
@@ -137,7 +153,60 @@ class Verity(private val backend: Backend) {
         return VerifierScheme(nativeLoadVerifierBytes(backend.ordinal, data))
     }
 
+    /**
+     * Data class holding ProveKit memory usage statistics.
+     *
+     * @property ramUsed Current RAM usage in bytes.
+     * @property swapUsed Current swap (file-backed) usage in bytes.
+     * @property peakRam Peak RAM usage in bytes since initialization.
+     */
+    data class MemoryStats(
+        val ramUsed: Long,
+        val swapUsed: Long,
+        val peakRam: Long,
+    )
+
     companion object {
+
+        /**
+         * Configure the ProveKit memory allocator.
+         *
+         * **Must be called before creating any [Verity] instance** (i.e., before
+         * `verity_init` is called). Has no effect on the Barretenberg backend.
+         *
+         * @param ramLimitBytes Maximum RAM the prover may use before spilling
+         *                      to disk. Pass 0 for no limit.
+         * @param useFileBacked If `true`, allocations beyond the RAM limit are
+         *                      backed by a memory-mapped file (swap-to-disk).
+         * @param swapFilePath  Path for the swap file. Required when
+         *                      [useFileBacked] is `true`; ignored otherwise.
+         */
+        @JvmStatic
+        fun configureMemory(
+            ramLimitBytes: Long,
+            useFileBacked: Boolean = false,
+            swapFilePath: String? = null,
+        ) {
+            loadLibrary()
+            val code = nativeConfigureMemory(ramLimitBytes, useFileBacked, swapFilePath)
+            if (code != 0) throw VerityException.fromCode(code)
+        }
+
+        /**
+         * Query current ProveKit memory usage.
+         *
+         * @return A [MemoryStats] snapshot. Only meaningful for the ProveKit backend.
+         */
+        @JvmStatic
+        fun getMemoryStats(): MemoryStats {
+            loadLibrary()
+            val stats = nativeGetMemoryStats()
+            return MemoryStats(
+                ramUsed = stats[0],
+                swapUsed = stats[1],
+                peakRam = stats[2],
+            )
+        }
         @Volatile
         private var libraryLoaded = false
         private val initializedBackends: MutableSet<Int> = ConcurrentHashMap.newKeySet()
@@ -225,5 +294,12 @@ class Verity(private val backend: Backend) {
 
         @JvmStatic
         private external fun nativeFreeVerifier(verifierHandle: Long)
+
+        @JvmStatic
+        private external fun nativeConfigureMemory(
+            ramLimitBytes: Long, useFileBacked: Boolean, swapFilePath: String?): Int
+
+        @JvmStatic
+        private external fun nativeGetMemoryStats(): LongArray
     }
 }

@@ -4,15 +4,21 @@ package com.aspect.verity
  * Opaque handle to a compiled verifier scheme.
  *
  * Created by [Verity.prepare] or [Verity.loadVerifier].
- * Can be reused for multiple verify calls from any thread.
- * Must be [close]d when no longer needed (or use [use]).
- * Do not call [close] while another thread is using this scheme.
+ * This class is thread-safe: it can be shared across threads for
+ * concurrent verify calls. Must be [close]d when no longer needed
+ * (or use [use]).
+ *
+ * A safety-net finalizer will free the native handle if [close] is
+ * never called, but relying on this is discouraged — always prefer
+ * explicit [close] or Kotlin's [use] block.
  */
+// Thread-safe: @Volatile closed flag + @Synchronized close/ensureOpen
 class VerifierScheme internal constructor(internal val handle: Long) : AutoCloseable {
 
     @Volatile
     private var closed = false
 
+    @Synchronized
     internal fun ensureOpen() {
         check(!closed) { "VerifierScheme is closed" }
     }
@@ -50,4 +56,9 @@ class VerifierScheme internal constructor(internal val handle: Long) : AutoClose
         }
     }
 
+    protected fun finalize() {
+        if (!closed) {
+            close()
+        }
+    }
 }

@@ -14,7 +14,10 @@ import java.io.File
 data class Circuit(
     val name: String,
     val assetDir: String,
+    /** For fragmented circuits: ordered list of sub-circuit names within assetDir. */
+    val steps: List<String>? = null,
 ) {
+    val isFragmented get() = steps != null
     override fun toString() = name
 }
 
@@ -26,6 +29,11 @@ class MainActivity : AppCompatActivity() {
         Circuit("Poseidon2", "circuits/poseidon2"),
         Circuit("SHA-256", "circuits/noir_sha256"),
         Circuit("Passport Age Check", "circuits/complete_age_check"),
+        Circuit(
+            "Passport Age Check (Fragmented)",
+            "circuits/fragmented_complete_age_check",
+            steps = listOf("t_add_dsc_720", "t_add_id_data_720", "t_add_integrity_commit", "t_attest"),
+        ),
     )
 
     private val backends = listOf(Backend.PROVEKIT, Backend.BARRETENBERG)
@@ -36,6 +44,10 @@ class MainActivity : AppCompatActivity() {
     // Stored after proof generation so verify can use them
     @Volatile private var lastProof: ByteArray? = null
     @Volatile private var lastVerifierScheme: VerifierScheme? = null
+
+    // For fragmented circuits: store all proofs and verifier schemes
+    @Volatile private var lastFragmentedProofs: List<ByteArray>? = null
+    @Volatile private var lastFragmentedVerifiers: List<VerifierScheme>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,20 +73,29 @@ class MainActivity : AppCompatActivity() {
             clearProof()
         }
 
-        binding.proveButton.setOnClickListener { runProve() }
-        binding.verifyButton.setOnClickListener { runVerify() }
+        binding.proveButton.setOnClickListener {
+            if (selectedCircuit.isFragmented) runProveFragmented() else runProve()
+        }
+        binding.verifyButton.setOnClickListener {
+            if (selectedCircuit.isFragmented) runVerifyFragmented() else runVerify()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         lastVerifierScheme?.close()
         lastVerifierScheme = null
+        lastFragmentedVerifiers?.forEach { it.runCatching { close() } }
+        lastFragmentedVerifiers = null
     }
 
     private fun clearProof() {
         lastProof = null
         lastVerifierScheme?.close()
         lastVerifierScheme = null
+        lastFragmentedProofs = null
+        lastFragmentedVerifiers?.forEach { it.runCatching { close() } }
+        lastFragmentedVerifiers = null
         binding.verifyButton.isEnabled = false
         binding.proofCard.visibility = View.GONE
         binding.statsCard.visibility = View.GONE
@@ -234,6 +255,171 @@ class MainActivity : AppCompatActivity() {
                 }
                 runOnUiThread {
                     binding.statusText.text = "Verify error: $errorMsg"
+                    binding.proveButton.isEnabled = true
+                    binding.verifyButton.isEnabled = true
+                }
+            }
+        }.apply {
+            uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, t ->
+                runOnUiThread {
+                    binding.statusText.text = "Verify error: ${t.message}"
+                    binding.proveButton.isEnabled = true
+                    binding.verifyButton.isEnabled = true
+                }
+            }
+        }.start()
+    }
+
+    private fun runProveFragmented() {
+        val circuit = selectedCircuit
+        val backend = selectedBackend
+        val bName = backendName(backend)
+        val steps = circuit.steps ?: return
+
+        binding.proveButton.isEnabled = false
+        binding.verifyButton.isEnabled = false
+        binding.statusText.text = "Initializing..."
+        binding.proofCard.visibility = View.GONE
+        binding.statsCard.visibility = View.GONE
+
+        Thread {
+            val verifiers = mutableListOf<VerifierScheme>()
+            try {
+                val verity = Verity(backend)
+                val proofs = mutableListOf<ByteArray>()
+                val memBefore = nativeMemoryMB()
+                val timings = mutableListOf<Pair<String, Long>>()
+
+                for ((index, step) in steps.withIndex()) {
+                    updateStatus("Step ${index + 1}/${steps.size}: $step ($bName)...")
+
+                    val inputPath = copyAssetToCache("${circuit.assetDir}/$step/Prover.toml")
+                    val proverPath = copyAssetToCache("${circuit.assetDir}/$step/prover.pkp")
+                    val verifierPath = copyAssetToCache("${circuit.assetDir}/$step/verifier.pkv")
+
+                    val proverScheme = verity.loadProver(proverPath)
+                    verifiers.add(verity.loadVerifier(verifierPath))
+
+                    val proveStart = System.currentTimeMillis()
+                    val proof = verity.prove(with = proverScheme, input = inputPath)
+                    val proveMs = System.currentTimeMillis() - proveStart
+
+                    proverScheme.close()
+                    proofs.add(proof)
+                    timings.add(step to proveMs)
+                }
+
+                val memAfterProve = nativeMemoryMB()
+                val totalMs = timings.sumOf { it.second }
+                val totalProofBytes = proofs.sumOf { it.size }
+
+                // Transfer ownership to lastFragmented* fields
+                lastFragmentedVerifiers?.forEach { it.runCatching { close() } }
+                lastFragmentedProofs = proofs
+                lastFragmentedVerifiers = verifiers.toList()
+
+                val combinedHex = proofs.joinToString("") { p ->
+                    p.joinToString("") { "%02x".format(it) }
+                }
+
+                val stats = buildString {
+                    append("Circuit:  ${circuit.name}\n")
+                    append("Backend:  $bName\n")
+                    append("Prepare:  pre-compiled (.pkp)\n")
+                    append("─── Prove ───\n")
+                    for ((step, ms) in timings) {
+                        append("  $step: ${ms}ms\n")
+                    }
+                    append("Total prove: ${totalMs}ms\n")
+                    append("─────────────────\n")
+                    append("Native heap: ${memBefore}MB → ${memAfterProve}MB\n")
+                    append("Total proof: $totalProofBytes bytes (${proofs.size} proofs)")
+                }
+
+                runOnUiThread {
+                    binding.proofCard.visibility = View.VISIBLE
+                    binding.proofLabel.text = "Proof chain ($totalProofBytes bytes, ${proofs.size} steps)"
+                    binding.proofText.text = combinedHex.take(120) + "..."
+                    binding.statsCard.visibility = View.VISIBLE
+                    binding.statsText.text = stats
+                    binding.statusText.text = "${circuit.name}: All ${steps.size} proofs generated"
+                    binding.proveButton.isEnabled = true
+                    binding.verifyButton.isEnabled = true
+                }
+            } catch (t: Throwable) {
+                verifiers.forEach { it.runCatching { close() } }
+                val errorMsg = when (t) {
+                    is UnsatisfiedLinkError ->
+                        "Native library not found. Ensure libverity_jni.so is built."
+                    is OutOfMemoryError ->
+                        "Out of memory while running ${circuit.name}."
+                    is java.io.FileNotFoundException ->
+                        "Missing asset: ${t.message}"
+                    else ->
+                        t.message ?: "Unknown error"
+                }
+                runOnUiThread {
+                    binding.statusText.text = "Error: $errorMsg"
+                    binding.proveButton.isEnabled = true
+                    binding.verifyButton.isEnabled = false
+                }
+            }
+        }.apply {
+            uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, t ->
+                runOnUiThread {
+                    binding.statusText.text = "Unexpected error: ${t.message}"
+                    binding.proveButton.isEnabled = true
+                    binding.verifyButton.isEnabled = false
+                }
+            }
+        }.start()
+    }
+
+    private fun runVerifyFragmented() {
+        val proofs = lastFragmentedProofs ?: return
+        val verifiers = lastFragmentedVerifiers ?: return
+        val steps = selectedCircuit.steps ?: return
+
+        binding.proveButton.isEnabled = false
+        binding.verifyButton.isEnabled = false
+        binding.statusText.text = "Verifying ${proofs.size} proofs..."
+
+        Thread {
+            try {
+                val verity = Verity(selectedBackend)
+                val timings = mutableListOf<Pair<String, Long>>()
+                var allValid = true
+
+                for (i in proofs.indices) {
+                    val start = System.currentTimeMillis()
+                    val valid = verity.verify(with = verifiers[i], proof = proofs[i])
+                    val ms = System.currentTimeMillis() - start
+                    timings.add(steps[i] to ms)
+                    if (!valid) {
+                        allValid = false
+                        break
+                    }
+                }
+
+                val totalMs = timings.sumOf { it.second }
+                val verifyStats = buildString {
+                    append("\n─── Verify ───\n")
+                    for ((step, ms) in timings) {
+                        append("  $step: ${ms}ms\n")
+                    }
+                    append("Total verify: ${totalMs}ms")
+                }
+                val statusMsg = if (allValid) "All ${proofs.size} proofs VALID" else "Proof chain INVALID"
+
+                runOnUiThread {
+                    binding.statsText.append(verifyStats)
+                    binding.statusText.text = statusMsg
+                    binding.proveButton.isEnabled = true
+                    binding.verifyButton.isEnabled = true
+                }
+            } catch (t: Throwable) {
+                runOnUiThread {
+                    binding.statusText.text = "Verify error: ${t.message ?: "Unknown error"}"
                     binding.proveButton.isEnabled = true
                     binding.verifyButton.isEnabled = true
                 }

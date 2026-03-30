@@ -456,6 +456,52 @@ Java_com_aspect_verity_Verity_nativeSerializeVerifier(
 }
 
 /* ------------------------------------------------------------------ */
+/*  Memory configuration & monitoring (ProveKit-specific)             */
+/* ------------------------------------------------------------------ */
+
+JNIEXPORT jint JNICALL
+Java_com_aspect_verity_Verity_nativeConfigureMemory(
+    JNIEnv *env, jclass clazz, jlong ramLimitBytes,
+    jboolean useFileBacked, jstring swapFilePath)
+{
+    const char *path = NULL;
+    if (swapFilePath != NULL) {
+        path = jstring_to_cstr(env, swapFilePath);
+    }
+
+    int code = verity_configure_memory(
+        (uintptr_t)ramLimitBytes,
+        (bool)useFileBacked,
+        path);
+
+    if (swapFilePath != NULL) {
+        release_cstr(env, swapFilePath, path);
+    }
+
+    return (jint)code;
+}
+
+JNIEXPORT jlongArray JNICALL
+Java_com_aspect_verity_Verity_nativeGetMemoryStats(
+    JNIEnv *env, jclass clazz)
+{
+    uintptr_t ram_used = 0, swap_used = 0, peak_ram = 0;
+    int code = verity_get_memory_stats(&ram_used, &swap_used, &peak_ram);
+
+    if (code != 0) {
+        throw_verity_error(env, code);
+        return NULL;
+    }
+
+    jlongArray result = (*env)->NewLongArray(env, 3);
+    if (result == NULL) return NULL;
+
+    jlong stats[3] = { (jlong)ram_used, (jlong)swap_used, (jlong)peak_ram };
+    (*env)->SetLongArrayRegion(env, result, 0, 3, stats);
+    return result;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Free handles                                                      */
 /* ------------------------------------------------------------------ */
 
