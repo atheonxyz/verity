@@ -3,3 +3,9 @@ resolver = "2"
 members = [
     "backends/barretenberg",
 ]
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+opt-level = "z"

@@ -59,6 +59,15 @@ libtool -static -o "$MERGED_DIR/ios-arm64-sim/libverity.a" \
     "$PROVEKIT_ROOT/target/$IOS_SIM/release/libprovekit_ffi.a" \
     $ZK_FFI_LIBS_SIM
 
+# Strip debug symbols to reduce library size
+echo "Stripping debug symbols..."
+strip -S -x "$MERGED_DIR/ios-arm64/libverity.a"
+strip -S -x "$MERGED_DIR/ios-arm64-sim/libverity.a"
+
+echo "Library sizes:"
+ls -lh "$MERGED_DIR/ios-arm64/libverity.a"
+ls -lh "$MERGED_DIR/ios-arm64-sim/libverity.a"
+
 HEADERS_DIR=$(mktemp -d)
 cp "$CORE_DIR/include/verity_ffi_raw.h" "$HEADERS_DIR/verity_ffi_raw.h"
 cat > "$HEADERS_DIR/module.modulemap" <<'MODULEMAP'
