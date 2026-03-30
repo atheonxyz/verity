@@ -3,8 +3,9 @@ import Verity
 
 actor VerityService {
     func generateAndVerify(circuit: Circuit, backend: Backend) async throws -> ProofResult {
-        let circuitPath = resourcePath(circuit.assetDir, "circuit.json")
-        let inputPath = resourcePath(circuit.assetDir, "Prover.toml")
+        let prefix = circuit.filePrefix
+        let circuitPath = bundlePath("\(prefix)_circuit", ext: "json")
+        let inputPath = bundlePath("\(prefix)_Prover", ext: "toml")
 
         let verity = try Verity(backend: backend)
 
@@ -14,8 +15,8 @@ actor VerityService {
         let verifier: VerifierScheme
 
         if backend == .provekit,
-           let pkpPath = optionalResourcePath(circuit.assetDir, "prover.pkp"),
-           let pkvPath = optionalResourcePath(circuit.assetDir, "verifier.pkv") {
+           let pkpPath = optionalBundlePath("\(prefix)_prover", ext: "pkp"),
+           let pkvPath = optionalBundlePath("\(prefix)_verifier", ext: "pkv") {
             prover = try verity.loadProver(from: pkpPath)
             verifier = try verity.loadVerifier(from: pkvPath)
         } else {
@@ -43,18 +44,11 @@ actor VerityService {
         )
     }
 
-    private func resourcePath(_ dir: String, _ file: String) -> String {
-        guard let url = Bundle.main.url(forResource: "Resources", withExtension: nil) else {
-            return ""
-        }
-        return url.appendingPathComponent(dir).appendingPathComponent(file).path
+    private func bundlePath(_ name: String, ext: String) -> String {
+        Bundle.main.path(forResource: name, ofType: ext) ?? ""
     }
 
-    private func optionalResourcePath(_ dir: String, _ file: String) -> String? {
-        guard let url = Bundle.main.url(forResource: "Resources", withExtension: nil) else {
-            return nil
-        }
-        let path = url.appendingPathComponent(dir).appendingPathComponent(file).path
-        return FileManager.default.fileExists(atPath: path) ? path : nil
+    private func optionalBundlePath(_ name: String, ext: String) -> String? {
+        Bundle.main.path(forResource: name, ofType: ext)
     }
 }

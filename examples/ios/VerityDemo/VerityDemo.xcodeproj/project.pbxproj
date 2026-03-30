@@ -8,12 +8,23 @@
 
 /* Begin PBXBuildFile section */
 		09F55AD2B03E798D1CB28F61 /* ProveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAC6478832950D95136F6FE /* ProveView.swift */; };
+		0D04728FC7E4BB85761BC78D /* complete_age_check_Prover.toml in Resources */ = {isa = PBXBuildFile; fileRef = A0B9E8C850D29C87617E922B /* complete_age_check_Prover.toml */; };
+		11822C43952018490424120E /* noir_sha256_circuit.json in Resources */ = {isa = PBXBuildFile; fileRef = 9B09ED5869B078991F90344D /* noir_sha256_circuit.json */; };
+		16916DBDAE5D0C6DF622681D /* poseidon2_verifier.pkv in Resources */ = {isa = PBXBuildFile; fileRef = 3098CC0AAD716D8C1281BEC7 /* poseidon2_verifier.pkv */; };
+		36B267B6A85FC0750C3E7121 /* complete_age_check_prover.pkp in Resources */ = {isa = PBXBuildFile; fileRef = D14ED706DE2641A89EA32E25 /* complete_age_check_prover.pkp */; };
+		40842ABC093421EA3AAB11A0 /* complete_age_check_verifier.pkv in Resources */ = {isa = PBXBuildFile; fileRef = 7CAED81803DE85FC2AF5F981 /* complete_age_check_verifier.pkv */; };
 		4D04D6B107B7920AEDFA00E7 /* ResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FF74B74CB1BADF2EB64663C /* ResultView.swift */; };
 		4D5A32B268D225E573166B13 /* CircuitListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EDFB0FDE11498432B30081B /* CircuitListView.swift */; };
+		52207445878D4398123A43B1 /* noir_sha256_Prover.toml in Resources */ = {isa = PBXBuildFile; fileRef = 87944D86C8589AFE65E3B97F /* noir_sha256_Prover.toml */; };
 		5BCBF73BC6EA8BFF0758B404 /* VerityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AB0FF0AC1A12BCCE2769820 /* VerityService.swift */; };
+		60A33820C9815FA215D8AC63 /* poseidon2_circuit.json in Resources */ = {isa = PBXBuildFile; fileRef = 5988ADCA2AF3BD7550DF2300 /* poseidon2_circuit.json */; };
 		7936318BEDF0B1FF4B31A0CE /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E350DAA87A5638157DBDE46 /* ContentView.swift */; };
+		846BF3481C9C4C52B68B11E7 /* noir_sha256_verifier.pkv in Resources */ = {isa = PBXBuildFile; fileRef = BD881AB652022CCD74B2DFF0 /* noir_sha256_verifier.pkv */; };
 		8659567A89B9DF1957869628 /* ProofResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 652F6001C2C7CAA28F651F22 /* ProofResult.swift */; };
-		BAE4AD19BAD08E923DA70462 /* Resources in Resources */ = {isa = PBXBuildFile; fileRef = C9FF3E53D304A5D6B96E0F22 /* Resources */; };
+		8F28FE7C8865D6EF97DE31A2 /* noir_sha256_prover.pkp in Resources */ = {isa = PBXBuildFile; fileRef = 9884BB8F6A6954FDBF1DAF85 /* noir_sha256_prover.pkp */; };
+		97915C64E630B934A4BE9082 /* poseidon2_Prover.toml in Resources */ = {isa = PBXBuildFile; fileRef = C6D4B4CE21A93D61D928E815 /* poseidon2_Prover.toml */; };
+		9E2DD48C246C9F0EAA279FC8 /* poseidon2_prover.pkp in Resources */ = {isa = PBXBuildFile; fileRef = 9D73A271EBCDFF715006CD31 /* poseidon2_prover.pkp */; };
+		C61A8ECDCA2D204D732D99DE /* complete_age_check_circuit.json in Resources */ = {isa = PBXBuildFile; fileRef = 3D547A5983C4B73F0EFF5B63 /* complete_age_check_circuit.json */; };
 		EDD4A9F16B9386F4437B1A6D /* VerityDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 222E4A660B4F7AFAF23603FB /* VerityDemoApp.swift */; };
 		FCBAFF78AC8B0A2D9CC6D2AB /* Verity in Frameworks */ = {isa = PBXBuildFile; productRef = 856039EBDA0A427C50748A63 /* Verity */; };
 /* End PBXBuildFile section */
@@ -24,9 +35,20 @@
 		222E4A660B4F7AFAF23603FB /* VerityDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityDemoApp.swift; sourceTree = "<group>"; };
 		2E350DAA87A5638157DBDE46 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		2F130A46CE0E7390646BD65A /* VerityDemo.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = VerityDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3098CC0AAD716D8C1281BEC7 /* poseidon2_verifier.pkv */ = {isa = PBXFileReference; path = poseidon2_verifier.pkv; sourceTree = "<group>"; };
+		3D547A5983C4B73F0EFF5B63 /* complete_age_check_circuit.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = complete_age_check_circuit.json; sourceTree = "<group>"; };
 		4FF74B74CB1BADF2EB64663C /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
+		5988ADCA2AF3BD7550DF2300 /* poseidon2_circuit.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = poseidon2_circuit.json; sourceTree = "<group>"; };
 		652F6001C2C7CAA28F651F22 /* ProofResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProofResult.swift; sourceTree = "<group>"; };
-		C9FF3E53D304A5D6B96E0F22 /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Resources; path = VerityDemo/Resources; sourceTree = SOURCE_ROOT; };
+		7CAED81803DE85FC2AF5F981 /* complete_age_check_verifier.pkv */ = {isa = PBXFileReference; path = complete_age_check_verifier.pkv; sourceTree = "<group>"; };
+		87944D86C8589AFE65E3B97F /* noir_sha256_Prover.toml */ = {isa = PBXFileReference; path = noir_sha256_Prover.toml; sourceTree = "<group>"; };
+		9884BB8F6A6954FDBF1DAF85 /* noir_sha256_prover.pkp */ = {isa = PBXFileReference; path = noir_sha256_prover.pkp; sourceTree = "<group>"; };
+		9B09ED5869B078991F90344D /* noir_sha256_circuit.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = noir_sha256_circuit.json; sourceTree = "<group>"; };
+		9D73A271EBCDFF715006CD31 /* poseidon2_prover.pkp */ = {isa = PBXFileReference; path = poseidon2_prover.pkp; sourceTree = "<group>"; };
+		A0B9E8C850D29C87617E922B /* complete_age_check_Prover.toml */ = {isa = PBXFileReference; path = complete_age_check_Prover.toml; sourceTree = "<group>"; };
+		BD881AB652022CCD74B2DFF0 /* noir_sha256_verifier.pkv */ = {isa = PBXFileReference; path = noir_sha256_verifier.pkv; sourceTree = "<group>"; };
+		C6D4B4CE21A93D61D928E815 /* poseidon2_Prover.toml */ = {isa = PBXFileReference; path = poseidon2_Prover.toml; sourceTree = "<group>"; };
+		D14ED706DE2641A89EA32E25 /* complete_age_check_prover.pkp */ = {isa = PBXFileReference; path = complete_age_check_prover.pkp; sourceTree = "<group>"; };
 		DBAC6478832950D95136F6FE /* ProveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProveView.swift; sourceTree = "<group>"; };
 		E1C7009CC28C2132C1F2C8F7 /* swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = swift; path = ../../../sdks/swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -48,6 +70,7 @@
 			children = (
 				222E4A660B4F7AFAF23603FB /* VerityDemoApp.swift */,
 				39EA8CDBC496D56269966704 /* Models */,
+				BD3A6565D01D2DAF13E1476D /* Resources */,
 				3CA8CD7B92B635BD51F3F9E2 /* Services */,
 				56028C84158CCAE39F3AD27C /* Views */,
 			);
@@ -78,6 +101,28 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
+		4317DD4FE8EC00D7E9F9196E /* poseidon2 */ = {
+			isa = PBXGroup;
+			children = (
+				5988ADCA2AF3BD7550DF2300 /* poseidon2_circuit.json */,
+				9D73A271EBCDFF715006CD31 /* poseidon2_prover.pkp */,
+				C6D4B4CE21A93D61D928E815 /* poseidon2_Prover.toml */,
+				3098CC0AAD716D8C1281BEC7 /* poseidon2_verifier.pkv */,
+			);
+			path = poseidon2;
+			sourceTree = "<group>";
+		};
+		4E76095C183DC3C5C4043BB3 /* complete_age_check */ = {
+			isa = PBXGroup;
+			children = (
+				3D547A5983C4B73F0EFF5B63 /* complete_age_check_circuit.json */,
+				D14ED706DE2641A89EA32E25 /* complete_age_check_prover.pkp */,
+				A0B9E8C850D29C87617E922B /* complete_age_check_Prover.toml */,
+				7CAED81803DE85FC2AF5F981 /* complete_age_check_verifier.pkv */,
+			);
+			path = complete_age_check;
+			sourceTree = "<group>";
+		};
 		56028C84158CCAE39F3AD27C /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -92,11 +137,39 @@
 		7C597C1A613928147878126F = {
 			isa = PBXGroup;
 			children = (
-				C9FF3E53D304A5D6B96E0F22 /* Resources */,
 				E909711EA3B67FDC57F3DBEF /* Packages */,
 				0C6448802DE3CF633093110C /* VerityDemo */,
 				215B9058F7DFB92E0493E429 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		BD3A6565D01D2DAF13E1476D /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				D82980FCF5022BB012B2A91F /* circuits */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		D41D7B259CDEE6A684E3D29D /* noir_sha256 */ = {
+			isa = PBXGroup;
+			children = (
+				9B09ED5869B078991F90344D /* noir_sha256_circuit.json */,
+				9884BB8F6A6954FDBF1DAF85 /* noir_sha256_prover.pkp */,
+				87944D86C8589AFE65E3B97F /* noir_sha256_Prover.toml */,
+				BD881AB652022CCD74B2DFF0 /* noir_sha256_verifier.pkv */,
+			);
+			path = noir_sha256;
+			sourceTree = "<group>";
+		};
+		D82980FCF5022BB012B2A91F /* circuits */ = {
+			isa = PBXGroup;
+			children = (
+				4E76095C183DC3C5C4043BB3 /* complete_age_check */,
+				D41D7B259CDEE6A684E3D29D /* noir_sha256 */,
+				4317DD4FE8EC00D7E9F9196E /* poseidon2 */,
+			);
+			path = circuits;
 			sourceTree = "<group>";
 		};
 		E909711EA3B67FDC57F3DBEF /* Packages */ = {
@@ -139,6 +212,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
+					E53DCAA91B07CAAFEAB26C64 = {
+						DevelopmentTeam = TCNNXXM658;
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = A98CCC336EBF2688DD138591 /* Build configuration list for PBXProject "VerityDemo" */;
@@ -168,7 +245,18 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BAE4AD19BAD08E923DA70462 /* Resources in Resources */,
+				0D04728FC7E4BB85761BC78D /* complete_age_check_Prover.toml in Resources */,
+				C61A8ECDCA2D204D732D99DE /* complete_age_check_circuit.json in Resources */,
+				36B267B6A85FC0750C3E7121 /* complete_age_check_prover.pkp in Resources */,
+				40842ABC093421EA3AAB11A0 /* complete_age_check_verifier.pkv in Resources */,
+				52207445878D4398123A43B1 /* noir_sha256_Prover.toml in Resources */,
+				11822C43952018490424120E /* noir_sha256_circuit.json in Resources */,
+				8F28FE7C8865D6EF97DE31A2 /* noir_sha256_prover.pkp in Resources */,
+				846BF3481C9C4C52B68B11E7 /* noir_sha256_verifier.pkv in Resources */,
+				97915C64E630B934A4BE9082 /* poseidon2_Prover.toml in Resources */,
+				60A33820C9815FA215D8AC63 /* poseidon2_circuit.json in Resources */,
+				9E2DD48C246C9F0EAA279FC8 /* poseidon2_prover.pkp in Resources */,
+				16916DBDAE5D0C6DF622681D /* poseidon2_verifier.pkv in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -197,13 +285,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				DEVELOPMENT_TEAM = TCNNXXM658;
+				INFOPLIST_FILE = VerityDemo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -283,13 +368,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				DEVELOPMENT_TEAM = TCNNXXM658;
+				INFOPLIST_FILE = VerityDemo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
