@@ -4,7 +4,7 @@
 /// Internal header — defines the vtable that each backend must fill in.
 /// Community contributors: implement your xx_* functions and provide a vtable.
 
-#include "../include/verity_ffi.h"
+#include "verity_ffi.h"
 
 /// Raw buffer — matches PKBuf / BBBuf layout exactly (3 fields, no tag).
 /// Used internally by vtable functions; converted to VerityBuf by dispatcher.
