@@ -20,7 +20,7 @@ struct ProveView: View {
                     Text("Barretenberg").tag(Backend.barretenberg)
                 }
                 .pickerStyle(.segmented)
-                .onChange(of: selectedBackend) { _, _ in
+                .onChange(of: selectedBackend) { _ in
                     result = nil
                     error = nil
                 }

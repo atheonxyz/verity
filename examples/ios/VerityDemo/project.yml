@@ -7,14 +7,20 @@ options:
 
 packages:
   Verity:
-    path: ../../sdks/swift
+    # For standalone use: url: https://github.com/atheonxyz/verity, from: "0.2.0"
+    path: ../../../sdks/swift
 
 targets:
   VerityDemo:
     type: application
     platform: iOS
     sources:
-      - VerityDemo
+      - path: VerityDemo
+        excludes:
+          - Resources
+      - path: VerityDemo/Resources
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: Verity
     settings:

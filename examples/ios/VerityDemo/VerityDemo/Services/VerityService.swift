@@ -3,33 +3,36 @@ import Verity
 
 actor VerityService {
     func generateAndVerify(circuit: Circuit, backend: Backend) async throws -> ProofResult {
-        // Get resource paths
         let circuitPath = resourcePath(circuit.assetDir, "circuit.json")
         let inputPath = resourcePath(circuit.assetDir, "Prover.toml")
 
         let verity = try Verity(backend: backend)
 
-        // Prepare
+        // Prepare or load
         let prepareStart = CFAbsoluteTimeGetCurrent()
-        let scheme: PreparedScheme
-        if backend == .provekit, let pkpPath = optionalResourcePath(circuit.assetDir, "prover.pkp"),
+        let prover: ProverScheme
+        let verifier: VerifierScheme
+
+        if backend == .provekit,
+           let pkpPath = optionalResourcePath(circuit.assetDir, "prover.pkp"),
            let pkvPath = optionalResourcePath(circuit.assetDir, "verifier.pkv") {
-            let prover = try verity.loadProver(from: pkpPath)
-            let verifier = try verity.loadVerifier(from: pkvPath)
-            scheme = PreparedScheme(prover: prover, verifier: verifier)
+            prover = try verity.loadProver(from: pkpPath)
+            verifier = try verity.loadVerifier(from: pkvPath)
         } else {
-            scheme = try verity.prepare(circuit: circuitPath)
+            let scheme = try verity.prepare(circuit: circuitPath)
+            prover = scheme.prover
+            verifier = scheme.verifier
         }
         let prepareTime = CFAbsoluteTimeGetCurrent() - prepareStart
 
         // Prove
         let proveStart = CFAbsoluteTimeGetCurrent()
-        let proof = try verity.prove(with: scheme.prover, input: inputPath)
+        let proof = try verity.prove(with: prover, input: inputPath)
         let proveTime = CFAbsoluteTimeGetCurrent() - proveStart
 
         // Verify
         let verifyStart = CFAbsoluteTimeGetCurrent()
-        let isValid = try verity.verify(with: scheme.verifier, proof: proof)
+        let isValid = try verity.verify(with: verifier, proof: proof)
         let verifyTime = CFAbsoluteTimeGetCurrent() - verifyStart
 
         return ProofResult(
@@ -41,10 +44,17 @@ actor VerityService {
     }
 
     private func resourcePath(_ dir: String, _ file: String) -> String {
-        Bundle.main.path(forResource: file, ofType: nil, inDirectory: dir) ?? ""
+        guard let url = Bundle.main.url(forResource: "Resources", withExtension: nil) else {
+            return ""
+        }
+        return url.appendingPathComponent(dir).appendingPathComponent(file).path
     }
 
     private func optionalResourcePath(_ dir: String, _ file: String) -> String? {
-        Bundle.main.path(forResource: file, ofType: nil, inDirectory: dir)
+        guard let url = Bundle.main.url(forResource: "Resources", withExtension: nil) else {
+            return nil
+        }
+        let path = url.appendingPathComponent(dir).appendingPathComponent(file).path
+        return FileManager.default.fileExists(atPath: path) ? path : nil
     }
 }
