@@ -1,0 +1,18 @@
+[backend]
+name = "barretenberg"
+id = 1
+description = "UltraHonk proving system with KZG commitments"
+
+[targets.ios]
+type = "rust-ffi"
+
+[targets.android]
+type = "rust-ffi"
+
+[targets.node]
+type = "rust-ffi"
+
+[targets.wasm]
+type = "vendor"
+package = "@aztec/bb.js"
+adapter = "sdks/js/src/backends/barretenberg.ts"

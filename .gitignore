@@ -1,18 +1,37 @@
+# Build outputs
 output/
-.build/
-DerivedData/
-*.o
-.DS_Store
-.swiftpm/
+core/target/
+
+# Swift
+sdks/swift/.build/
+sdks/swift/DerivedData/
 *.xcuserstate
 xcuserdata/
-Examples/BasicProof/BasicProof.xcodeproj/
-Examples/Showcase/Showcase.xcodeproj/
-zkffi/target/
+.swiftpm/
 
 # Android / Gradle
 .gradle/
 .idea/
 build/
+!core/build/
 local.properties
 *.so
+
+# Kotlin
+sdks/kotlin/build/
+
+# JavaScript / Node
+sdks/js/node_modules/
+sdks/js/dist/
+*.node
+
+# Rust
+target/
+
+# OS
+.DS_Store
+*.o
+
+# Examples (Xcode projects are generated)
+examples/ios/BasicProof/*.xcodeproj/
+examples/ios/Showcase/*.xcodeproj/
