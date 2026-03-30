@@ -146,6 +146,7 @@ class Verity(private val backend: Backend) {
             if (!libraryLoaded) {
                 synchronized(Companion) {
                     if (!libraryLoaded) {
+                        System.loadLibrary("provekit_ffi")
                         System.loadLibrary("verity_jni")
                         // Set HOME for backends that need writable dirs (e.g., Barretenberg SRS).
                         val tmpDir = System.getProperty("java.io.tmpdir") ?: "/data/local/tmp"
