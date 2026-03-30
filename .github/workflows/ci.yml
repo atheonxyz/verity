@@ -71,7 +71,7 @@ jobs:
 
   test-swift:
     needs: [changes, core-build]
-    if: always() && (needs.changes.outputs.swift == 'true' || needs.changes.outputs.core == 'true')
+    if: needs.changes.outputs.swift == 'true' || needs.changes.outputs.core == 'true'
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -93,7 +93,7 @@ jobs:
 
   test-kotlin:
     needs: [changes, core-build]
-    if: always() && (needs.changes.outputs.kotlin == 'true' || needs.changes.outputs.core == 'true')
+    if: needs.changes.outputs.kotlin == 'true' || needs.changes.outputs.core == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -112,7 +112,7 @@ jobs:
 
   test-js:
     needs: [changes, core-build]
-    if: always() && (needs.changes.outputs.js == 'true' || needs.changes.outputs.core == 'true')
+    if: needs.changes.outputs.js == 'true' || needs.changes.outputs.core == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
