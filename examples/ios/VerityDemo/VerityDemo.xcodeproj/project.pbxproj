@@ -27,7 +27,6 @@
 		4FF74B74CB1BADF2EB64663C /* ResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultView.swift; sourceTree = "<group>"; };
 		652F6001C2C7CAA28F651F22 /* ProofResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProofResult.swift; sourceTree = "<group>"; };
 		C9FF3E53D304A5D6B96E0F22 /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Resources; path = VerityDemo/Resources; sourceTree = SOURCE_ROOT; };
-		CC55D2921F0991E6EB1CC0E2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DBAC6478832950D95136F6FE /* ProveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProveView.swift; sourceTree = "<group>"; };
 		E1C7009CC28C2132C1F2C8F7 /* swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = swift; path = ../../../sdks/swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -47,7 +46,6 @@
 		0C6448802DE3CF633093110C /* VerityDemo */ = {
 			isa = PBXGroup;
 			children = (
-				CC55D2921F0991E6EB1CC0E2 /* Info.plist */,
 				222E4A660B4F7AFAF23603FB /* VerityDemoApp.swift */,
 				39EA8CDBC496D56269966704 /* Models */,
 				3CA8CD7B92B635BD51F3F9E2 /* Services */,
@@ -200,7 +198,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				INFOPLIST_FILE = VerityDemo/Info.plist;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -281,7 +284,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				INFOPLIST_FILE = VerityDemo/Info.plist;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSRequiresIPhoneOS = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
