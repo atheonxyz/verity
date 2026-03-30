@@ -1,6 +1,6 @@
 [advisories]
 vulnerability = "deny"
-unmaintained = "warn"
+unmaintained = "workspace"
 yanked = "deny"
 
 [licenses]
@@ -16,9 +16,9 @@ allow = [
 ]
 
 [bans]
-multiple-versions = "warn"
+multiple-versions = "workspace"
 wildcards = "deny"
 
 [sources]
 unknown-registry = "deny"
-unknown-git = "warn"
+unknown-git = "allow"
