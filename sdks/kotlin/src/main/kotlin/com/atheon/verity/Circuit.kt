@@ -80,7 +80,7 @@ class Circuit private constructor(
         @JvmStatic
         fun fromBytes(data: ByteArray): Circuit {
             require(data.isNotEmpty()) { "circuit data cannot be empty" }
-            return Circuit(data, null)
+            return Circuit(data.copyOf(), null)
         }
     }
 }

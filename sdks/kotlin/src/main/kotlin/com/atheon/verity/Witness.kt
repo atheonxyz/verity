@@ -71,7 +71,7 @@ class Witness private constructor(
         @JvmStatic
         fun of(values: Map<String, String>): Witness {
             require(values.isNotEmpty()) { "witness values cannot be empty" }
-            return Witness(Storage.Values(values))
+            return Witness(Storage.Values(values.toMap()))
         }
 
         /**

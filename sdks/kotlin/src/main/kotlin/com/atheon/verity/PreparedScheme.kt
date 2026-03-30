@@ -7,9 +7,9 @@ package com.atheon.verity
  * Each must be [AutoCloseable.close]d when no longer needed.
  */
 class PreparedScheme(
-    /** Prover scheme — pass to [Verity.prove]. */
+    /** Prover scheme — call [ProverScheme.prove] to generate proofs. */
     val prover: ProverScheme,
-    /** Verifier scheme — pass to [Verity.verify]. */
+    /** Verifier scheme — call [VerifierScheme.verify] to check proofs. */
     val verifier: VerifierScheme,
 ) : AutoCloseable {
 

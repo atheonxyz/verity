@@ -4,8 +4,8 @@ import Verity
 actor VerityService {
     func generateAndVerify(circuit: DemoCircuit, backend: Backend) async throws -> ProofResult {
         let prefix = circuit.filePrefix
-        let circuitPath = bundlePath("\(prefix)_circuit", ext: "json")
-        let inputPath = bundlePath("\(prefix)_Prover", ext: "toml")
+        let circuitPath = try bundlePath("\(prefix)_circuit", ext: "json")
+        let inputPath = try bundlePath("\(prefix)_Prover", ext: "toml")
 
         let verity = try Verity(backend: backend)
 
@@ -48,8 +48,11 @@ actor VerityService {
         )
     }
 
-    private func bundlePath(_ name: String, ext: String) -> String {
-        Bundle.main.path(forResource: name, ofType: ext) ?? ""
+    private func bundlePath(_ name: String, ext: String) throws -> String {
+        guard let path = Bundle.main.path(forResource: name, ofType: ext) else {
+            throw VerityError.invalidInput("bundled resource not found: \(name).\(ext)")
+        }
+        return path
     }
 
     private func optionalBundlePath(_ name: String, ext: String) -> String? {

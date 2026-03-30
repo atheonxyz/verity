@@ -33,7 +33,7 @@ _Static_assert(offsetof(BBBuf, cap) == offsetof(RawBuf, cap), "BBBuf.cap offset 
 
 // ── BB has no separate init — SRS setup is lazy (inside prepare/prove) ─────
 
-static int bb_init_noop(void) { return 0; }
+static int bb_init_noop(void) { return VERITY_SUCCESS; }
 
 // ── Thin wrappers ──────────────────────────────────────────────────────────
 

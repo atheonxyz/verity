@@ -319,6 +319,8 @@ int verity_pk_configure_memory(uintptr_t ram_limit_bytes,
                             bool use_file_backed,
                             const char *swap_file_path) {
     if (use_file_backed && !swap_file_path) return VERITY_INVALID_INPUT;
+    if (use_file_backed && swap_file_path[0] == '\0') return VERITY_INVALID_INPUT;
+    if (!get_vt(VERITY_BACKEND_PROVEKIT)) return VERITY_UNKNOWN_BACKEND;
     extern int pk_configure_memory(uintptr_t, bool, const char *);
     return pk_configure_memory(ram_limit_bytes, use_file_backed, swap_file_path);
 }
@@ -327,6 +329,7 @@ int verity_pk_get_memory_stats(uintptr_t *ram_used,
                             uintptr_t *swap_used,
                             uintptr_t *peak_ram) {
     if (!ram_used || !swap_used || !peak_ram) return VERITY_INVALID_INPUT;
+    if (!get_vt(VERITY_BACKEND_PROVEKIT)) return VERITY_UNKNOWN_BACKEND;
     extern int pk_get_memory_stats(uintptr_t *, uintptr_t *, uintptr_t *);
     return pk_get_memory_stats(ram_used, swap_used, peak_ram);
 }
