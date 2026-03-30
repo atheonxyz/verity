@@ -33,7 +33,6 @@ jobs:
 
   npm-audit:
     runs-on: ubuntu-latest
-    if: hashFiles('sdks/js/package-lock.json') != ''
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,9 +40,13 @@ jobs:
           node-version: 20
       - name: Audit JS dependencies
         run: |
-          cd sdks/js
-          npm ci
-          npm audit --audit-level=high
+          if [ -f sdks/js/package-lock.json ]; then
+            cd sdks/js
+            npm ci
+            npm audit --audit-level=high
+          else
+            echo "No package-lock.json found — skipping npm audit"
+          fi
 
   gitleaks:
     runs-on: ubuntu-latest

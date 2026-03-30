@@ -37,9 +37,9 @@ jobs:
       - name: Record artifact sizes
         run: |
           echo "## iOS Artifact Sizes" >> $GITHUB_STEP_SUMMARY
-          find output/ -name '*.a' -o -name '*.xcframework' | while read f; do
+          find output/ \( -name '*.a' -o -name '*.xcframework' \) -print0 | while IFS= read -r -d '' f; do
             size=$(du -sh "$f" | cut -f1)
-            echo "- \`$(basename $f)\`: $size" >> $GITHUB_STEP_SUMMARY
+            echo "- \`$(basename "$f")\`: $size" >> "$GITHUB_STEP_SUMMARY"
           done
       - uses: actions/upload-artifact@v4
         with:
@@ -69,9 +69,9 @@ jobs:
       - name: Record artifact sizes
         run: |
           echo "## Android Artifact Sizes" >> $GITHUB_STEP_SUMMARY
-          find output/android -name '*.so' -o -name '*.a' | while read f; do
+          find output/android \( -name '*.so' -o -name '*.a' \) -print0 | while IFS= read -r -d '' f; do
             size=$(du -sh "$f" | cut -f1)
-            echo "- \`$(basename $(dirname $f))/$(basename $f)\`: $size" >> $GITHUB_STEP_SUMMARY
+            echo "- \`$(basename "$(dirname "$f")")/$(basename "$f")\`: $size" >> "$GITHUB_STEP_SUMMARY"
           done
       - uses: actions/upload-artifact@v4
         with:

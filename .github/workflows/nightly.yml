@@ -96,13 +96,16 @@ jobs:
           merge-multiple: false
       - name: Report sizes
         run: |
-          echo "# Nightly Binary Size Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Artifact | Size |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|------|" >> $GITHUB_STEP_SUMMARY
-          find . -type f \( -name '*.a' -o -name '*.so' -o -name '*.wasm' -o -name '*.xcframework' \) | sort | while read f; do
+          {
+            echo "# Nightly Binary Size Report"
+            echo ""
+            echo "| Artifact | Size |"
+            echo "|----------|------|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          find . -type f \( -name '*.a' -o -name '*.so' -o -name '*.wasm' -o -name '*.xcframework' \) -print0 | sort -z | while IFS= read -r -d '' f; do
             size=$(du -sh "$f" | cut -f1)
-            echo "| \`$(echo $f | sed 's|^\./||')\` | $size |" >> $GITHUB_STEP_SUMMARY
+            name="${f#./}"
+            echo "| \`${name}\` | ${size} |" >> "$GITHUB_STEP_SUMMARY"
           done
 
   notify:
@@ -113,5 +116,7 @@ jobs:
       - name: Nightly failure summary
         run: |
           echo "::error::Nightly build failed. Check workflow run for details."
-          echo "# Nightly Failed" >> $GITHUB_STEP_SUMMARY
-          echo "One or more nightly jobs failed. Investigate immediately." >> $GITHUB_STEP_SUMMARY
+          {
+            echo "# Nightly Failed"
+            echo "One or more nightly jobs failed. Investigate immediately."
+          } >> "$GITHUB_STEP_SUMMARY"
