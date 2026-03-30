@@ -1,4 +1,4 @@
-package com.aspect.verity
+package com.atheon.verity
 
 /**
  * Opaque handle to a compiled verifier scheme.

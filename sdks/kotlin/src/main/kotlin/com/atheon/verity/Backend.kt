@@ -1,4 +1,4 @@
-package com.aspect.verity
+package com.atheon.verity
 
 /** Available proving backends. */
 enum class Backend {

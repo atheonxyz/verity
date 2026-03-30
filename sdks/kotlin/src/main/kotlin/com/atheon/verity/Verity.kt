@@ -1,4 +1,4 @@
-package com.aspect.verity
+package com.atheon.verity
 
 import java.util.concurrent.ConcurrentHashMap
 import org.json.JSONObject

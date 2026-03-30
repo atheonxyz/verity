@@ -1,10 +1,11 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("maven-publish")
 }
 
 android {
-    namespace = "com.aspect.verity"
+    namespace = "com.atheon.verity"
     compileSdk = 34
 
     defaultConfig {
@@ -48,5 +49,16 @@ dependencies {
     androidTestImplementation("androidx.test:runner:1.5.2")
 }
 
-// Publishing config moved to release script to avoid Gradle configuration-cache issues.
-// To publish: ./gradlew :verity-kotlin:assembleRelease && scripts/release.sh
+publishing {
+    publications {
+        create<MavenPublication>("release") {
+            groupId = "com.atheon"
+            artifactId = "verity"
+            version = file("../../VERSION").readText().trim()
+
+            afterEvaluate {
+                from(components["release"])
+            }
+        }
+    }
+}
