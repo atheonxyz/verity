@@ -1,0 +1,99 @@
+name: Core Build
+
+on:
+  workflow_call:
+    inputs:
+      targets:
+        description: "Comma-separated targets: ios,android,wasm,native"
+        required: false
+        default: "ios,android,wasm,native"
+        type: string
+  push:
+    paths:
+      - "core/**"
+  pull_request:
+    paths:
+      - "core/**"
+
+jobs:
+  build-ios:
+    if: contains(inputs.targets || 'ios', 'ios')
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
+      - uses: actions/cache@v4
+        with:
+          path: core/target
+          key: rust-ios-${{ hashFiles('core/Cargo.lock') }}
+      - name: Build for iOS
+        run: |
+          cd core
+          cargo build --release --target aarch64-apple-ios
+          cargo build --release --target aarch64-apple-ios-sim
+      - uses: actions/upload-artifact@v4
+        with:
+          name: core-ios
+          path: core/target/*/release/lib*.a
+
+  build-android:
+    if: contains(inputs.targets || 'android', 'android')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: aarch64-linux-android,x86_64-linux-android
+      - uses: actions/cache@v4
+        with:
+          path: core/target
+          key: rust-android-${{ hashFiles('core/Cargo.lock') }}
+      - name: Build for Android
+        run: bash core/build/build-android.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: core-android
+          path: output/android/
+
+  build-wasm:
+    if: contains(inputs.targets || 'wasm', 'wasm')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+      - uses: actions/cache@v4
+        with:
+          path: core/target
+          key: rust-wasm-${{ hashFiles('core/Cargo.lock') }}
+      - name: Build for WASM
+        run: bash core/build/build-wasm.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: core-wasm
+          path: output/wasm/
+
+  build-native:
+    if: contains(inputs.targets || 'native', 'native')
+    strategy:
+      matrix:
+        os: [macos-14, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: actions/cache@v4
+        with:
+          path: core/target
+          key: rust-native-${{ matrix.os }}-${{ hashFiles('core/Cargo.lock') }}
+      - name: Build for host
+        run: bash core/build/build-native.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: core-native-${{ matrix.os }}
+          path: core/target/release/lib*.a

@@ -1,0 +1,37 @@
+name: Swift SDK
+
+on:
+  push:
+    paths:
+      - "sdks/swift/**"
+      - "core/**"
+  pull_request:
+    paths:
+      - "sdks/swift/**"
+      - "core/**"
+  release:
+    types: [published]
+
+jobs:
+  test:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test
+        run: |
+          cd sdks/swift
+          xcodebuild test \
+            -scheme Verity \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -skipPackagePluginValidation
+
+  publish:
+    needs: test
+    if: github.event_name == 'release'
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Release
+        run: bash sdks/swift/scripts/release.sh ${{ github.event.release.tag_name }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

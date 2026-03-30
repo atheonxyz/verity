@@ -1,0 +1,43 @@
+name: Kotlin SDK
+
+on:
+  push:
+    paths:
+      - "sdks/kotlin/**"
+      - "core/**"
+  pull_request:
+    paths:
+      - "sdks/kotlin/**"
+      - "core/**"
+  release:
+    types: [published]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Build
+        run: cd sdks/kotlin && ./gradlew build
+
+  publish:
+    needs: test
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Publish to Maven Central
+        run: cd sdks/kotlin && ./gradlew publish
+        env:
+          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.GPG_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.GPG_PASSPHRASE }}
+          ORG_GRADLE_PROJECT_sonatypeUsername: ${{ secrets.SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_sonatypePassword: ${{ secrets.SONATYPE_PASSWORD }}
