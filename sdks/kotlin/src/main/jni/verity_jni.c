@@ -6,6 +6,7 @@
  */
 
 #include <jni.h>
+#include <stdlib.h>
 #include <string.h>
 #include "verity_ffi.h"
 
@@ -50,6 +51,17 @@ static void throw_verity_error(JNIEnv *env, int code) {
 /* ------------------------------------------------------------------ */
 /*  Lifecycle                                                         */
 /* ------------------------------------------------------------------ */
+
+JNIEXPORT void JNICALL
+Java_com_atheon_verity_Verity_nativeConfigureHome(
+    JNIEnv *env, jclass clazz, jstring homeDir)
+{
+    const char *home = jstring_to_cstr(env, homeDir);
+    if (home != NULL) {
+        setenv("HOME", home, 1);
+        release_cstr(env, homeDir, home);
+    }
+}
 
 JNIEXPORT jint JNICALL
 Java_com_atheon_verity_Verity_nativeInit(

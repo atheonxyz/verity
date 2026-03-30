@@ -146,7 +146,7 @@ public final class Verity {
 
         switch code {
         case 0: return true
-        case 4: return false
+        case 4, 5: return false  // PROOF_ERROR or SERIALIZATION_ERROR = invalid proof
         default: throw VerityError.fromCode(code)
         }
     }

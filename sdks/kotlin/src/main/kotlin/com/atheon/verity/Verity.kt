@@ -78,7 +78,7 @@ class Verity(private val backend: Backend) {
         val code = nativeVerify(with.handle, proof)
         return when (code) {
             0 -> true
-            4 -> false
+            4, 5 -> false  // PROOF_ERROR or SERIALIZATION_ERROR = invalid proof
             else -> throw VerityException.fromCode(code)
         }
     }
@@ -147,6 +147,9 @@ class Verity(private val backend: Backend) {
                 synchronized(Companion) {
                     if (!libraryLoaded) {
                         System.loadLibrary("verity_jni")
+                        // Set HOME for backends that need writable dirs (e.g., Barretenberg SRS).
+                        val tmpDir = System.getProperty("java.io.tmpdir") ?: "/data/local/tmp"
+                        nativeConfigureHome(tmpDir)
                         libraryLoaded = true
                     }
                 }
@@ -167,6 +170,9 @@ class Verity(private val backend: Backend) {
                 }
             }
         }
+
+        @JvmStatic
+        private external fun nativeConfigureHome(homeDir: String)
 
         @JvmStatic
         private external fun nativeInit(backend: Int): Int
