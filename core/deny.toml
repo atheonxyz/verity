@@ -16,7 +16,7 @@ allow = [
 ]
 
 [bans]
-multiple-versions = "workspace"
+multiple-versions = "warn"
 wildcards = "deny"
 
 [sources]
