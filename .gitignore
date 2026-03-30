@@ -32,6 +32,9 @@ target/
 .DS_Store
 *.o
 
+# OMC state
+.omc/
+
 # Examples (Xcode projects are generated)
 examples/ios/BasicProof/*.xcodeproj/
 examples/ios/Showcase/*.xcodeproj/
