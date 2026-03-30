@@ -1,4 +1,4 @@
-package com.aspect.verity
+package atheon.verity
 
 /** Errors returned by Verity operations. */
 sealed class VerityException(message: String) : Exception(message) {

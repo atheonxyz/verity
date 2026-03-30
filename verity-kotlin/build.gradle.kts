@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.aspect.verity"
+    namespace = "atheon.verity"
     compileSdk = 34
 
     defaultConfig {

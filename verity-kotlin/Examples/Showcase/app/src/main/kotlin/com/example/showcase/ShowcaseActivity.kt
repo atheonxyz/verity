@@ -2,8 +2,8 @@ package com.example.showcase
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.aspect.verity.Backend
-import com.aspect.verity.Verity
+import atheon.verity.Backend
+import atheon.verity.Verity
 import com.example.showcase.databinding.ActivityShowcaseBinding
 import java.io.File
 

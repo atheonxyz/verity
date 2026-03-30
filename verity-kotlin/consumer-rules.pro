@@ -1,8 +1,8 @@
 # Keep the Verity public API
--keep class com.aspect.verity.Verity { *; }
--keep class com.aspect.verity.Backend { *; }
--keep class com.aspect.verity.ProverScheme { *; }
--keep class com.aspect.verity.VerifierScheme { *; }
--keep class com.aspect.verity.PreparedScheme { *; }
--keep class com.aspect.verity.VerityException { *; }
--keep class com.aspect.verity.VerityException$* { *; }
+-keep class atheon.verity.Verity { *; }
+-keep class atheon.verity.Backend { *; }
+-keep class atheon.verity.ProverScheme { *; }
+-keep class atheon.verity.VerifierScheme { *; }
+-keep class atheon.verity.PreparedScheme { *; }
+-keep class atheon.verity.VerityException { *; }
+-keep class atheon.verity.VerityException$* { *; }

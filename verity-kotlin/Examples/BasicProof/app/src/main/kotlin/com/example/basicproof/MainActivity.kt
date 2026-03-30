@@ -5,9 +5,9 @@ import android.os.Debug
 import android.view.View
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AppCompatActivity
-import com.aspect.verity.Backend
-import com.aspect.verity.Verity
-import com.aspect.verity.VerifierScheme
+import atheon.verity.Backend
+import atheon.verity.Verity
+import atheon.verity.VerifierScheme
 import com.example.basicproof.databinding.ActivityMainBinding
 import java.io.File
 
@@ -120,7 +120,7 @@ class MainActivity : AppCompatActivity() {
         binding.statsCard.visibility = View.GONE
 
         Thread {
-            var proverScheme: com.aspect.verity.ProverScheme? = null
+            var proverScheme: atheon.verity.ProverScheme? = null
             var verifierScheme: VerifierScheme? = null
             try {
                 val verity = Verity(backend)

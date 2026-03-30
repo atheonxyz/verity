@@ -28,13 +28,13 @@ static void release_cstr(JNIEnv *env, jstring jstr, const char *cstr) {
 
 /** Throw a typed VerityException from an FFI error code via fromCode(). */
 static void throw_verity_error(JNIEnv *env, int code) {
-    jclass cls = (*env)->FindClass(env, "com/aspect/verity/VerityException");
+    jclass cls = (*env)->FindClass(env, "atheon/verity/VerityException");
     if (cls == NULL) {
         (*env)->ExceptionClear(env);
         return;
     }
     jmethodID fromCode = (*env)->GetStaticMethodID(env, cls, "fromCode",
-        "(I)Lcom/aspect/verity/VerityException;");
+        "(I)Latheon/verity/VerityException;");
     if (fromCode == NULL) {
         (*env)->DeleteLocalRef(env, cls);
         (*env)->ExceptionClear(env);
@@ -52,7 +52,7 @@ static void throw_verity_error(JNIEnv *env, int code) {
 /* ------------------------------------------------------------------ */
 
 JNIEXPORT jint JNICALL
-Java_com_aspect_verity_Verity_nativeInit(
+Java_atheon_verity_Verity_nativeInit(
     JNIEnv *env, jclass clazz, jint backend)
 {
     return (jint)verity_init((VerityBackend)backend);
@@ -63,7 +63,7 @@ Java_com_aspect_verity_Verity_nativeInit(
 /* ------------------------------------------------------------------ */
 
 JNIEXPORT jlongArray JNICALL
-Java_com_aspect_verity_Verity_nativePrepare(
+Java_atheon_verity_Verity_nativePrepare(
     JNIEnv *env, jclass clazz, jint backend, jstring circuitPath)
 {
     const char *circuit = jstring_to_cstr(env, circuitPath);
@@ -101,7 +101,7 @@ Java_com_aspect_verity_Verity_nativePrepare(
 /* ------------------------------------------------------------------ */
 
 JNIEXPORT jbyteArray JNICALL
-Java_com_aspect_verity_Verity_nativeProveToml(
+Java_atheon_verity_Verity_nativeProveToml(
     JNIEnv *env, jclass clazz, jlong proverHandle, jstring inputPath)
 {
     if (proverHandle == 0) {
@@ -152,7 +152,7 @@ Java_com_aspect_verity_Verity_nativeProveToml(
 /* ------------------------------------------------------------------ */
 
 JNIEXPORT jbyteArray JNICALL
-Java_com_aspect_verity_Verity_nativeProveJson(
+Java_atheon_verity_Verity_nativeProveJson(
     JNIEnv *env, jclass clazz, jlong proverHandle, jstring inputsJson)
 {
     if (proverHandle == 0) {
@@ -203,7 +203,7 @@ Java_com_aspect_verity_Verity_nativeProveJson(
 /* ------------------------------------------------------------------ */
 
 JNIEXPORT jint JNICALL
-Java_com_aspect_verity_Verity_nativeVerify(
+Java_atheon_verity_Verity_nativeVerify(
     JNIEnv *env, jclass clazz, jlong verifierHandle, jbyteArray proof)
 {
     if (verifierHandle == 0 || proof == NULL) {
@@ -228,7 +228,7 @@ Java_com_aspect_verity_Verity_nativeVerify(
 /* ------------------------------------------------------------------ */
 
 JNIEXPORT jlong JNICALL
-Java_com_aspect_verity_Verity_nativeLoadProver(
+Java_atheon_verity_Verity_nativeLoadProver(
     JNIEnv *env, jclass clazz, jint backend, jstring path)
 {
     const char *cpath = jstring_to_cstr(env, path);
@@ -251,7 +251,7 @@ Java_com_aspect_verity_Verity_nativeLoadProver(
 }
 
 JNIEXPORT jlong JNICALL
-Java_com_aspect_verity_Verity_nativeLoadVerifier(
+Java_atheon_verity_Verity_nativeLoadVerifier(
     JNIEnv *env, jclass clazz, jint backend, jstring path)
 {
     const char *cpath = jstring_to_cstr(env, path);
@@ -278,7 +278,7 @@ Java_com_aspect_verity_Verity_nativeLoadVerifier(
 /* ------------------------------------------------------------------ */
 
 JNIEXPORT jlong JNICALL
-Java_com_aspect_verity_Verity_nativeLoadProverBytes(
+Java_atheon_verity_Verity_nativeLoadProverBytes(
     JNIEnv *env, jclass clazz, jint backend, jbyteArray data)
 {
     if (data == NULL) {
@@ -308,7 +308,7 @@ Java_com_aspect_verity_Verity_nativeLoadProverBytes(
 }
 
 JNIEXPORT jlong JNICALL
-Java_com_aspect_verity_Verity_nativeLoadVerifierBytes(
+Java_atheon_verity_Verity_nativeLoadVerifierBytes(
     JNIEnv *env, jclass clazz, jint backend, jbyteArray data)
 {
     if (data == NULL) {
@@ -342,7 +342,7 @@ Java_com_aspect_verity_Verity_nativeLoadVerifierBytes(
 /* ------------------------------------------------------------------ */
 
 JNIEXPORT jint JNICALL
-Java_com_aspect_verity_Verity_nativeSaveProver(
+Java_atheon_verity_Verity_nativeSaveProver(
     JNIEnv *env, jclass clazz, jlong proverHandle, jstring path)
 {
     if (proverHandle == 0) return (jint)VERITY_INVALID_INPUT;
@@ -358,7 +358,7 @@ Java_com_aspect_verity_Verity_nativeSaveProver(
 }
 
 JNIEXPORT jint JNICALL
-Java_com_aspect_verity_Verity_nativeSaveVerifier(
+Java_atheon_verity_Verity_nativeSaveVerifier(
     JNIEnv *env, jclass clazz, jlong verifierHandle, jstring path)
 {
     if (verifierHandle == 0) return (jint)VERITY_INVALID_INPUT;
@@ -378,7 +378,7 @@ Java_com_aspect_verity_Verity_nativeSaveVerifier(
 /* ------------------------------------------------------------------ */
 
 JNIEXPORT jbyteArray JNICALL
-Java_com_aspect_verity_Verity_nativeSerializeProver(
+Java_atheon_verity_Verity_nativeSerializeProver(
     JNIEnv *env, jclass clazz, jlong proverHandle)
 {
     if (proverHandle == 0) {
@@ -417,7 +417,7 @@ Java_com_aspect_verity_Verity_nativeSerializeProver(
 }
 
 JNIEXPORT jbyteArray JNICALL
-Java_com_aspect_verity_Verity_nativeSerializeVerifier(
+Java_atheon_verity_Verity_nativeSerializeVerifier(
     JNIEnv *env, jclass clazz, jlong verifierHandle)
 {
     if (verifierHandle == 0) {
@@ -460,7 +460,7 @@ Java_com_aspect_verity_Verity_nativeSerializeVerifier(
 /* ------------------------------------------------------------------ */
 
 JNIEXPORT jint JNICALL
-Java_com_aspect_verity_Verity_nativeConfigureMemory(
+Java_atheon_verity_Verity_nativeConfigureMemory(
     JNIEnv *env, jclass clazz, jlong ramLimitBytes,
     jboolean useFileBacked, jstring swapFilePath)
 {
@@ -482,7 +482,7 @@ Java_com_aspect_verity_Verity_nativeConfigureMemory(
 }
 
 JNIEXPORT jlongArray JNICALL
-Java_com_aspect_verity_Verity_nativeGetMemoryStats(
+Java_atheon_verity_Verity_nativeGetMemoryStats(
     JNIEnv *env, jclass clazz)
 {
     uintptr_t ram_used = 0, swap_used = 0, peak_ram = 0;
@@ -506,7 +506,7 @@ Java_com_aspect_verity_Verity_nativeGetMemoryStats(
 /* ------------------------------------------------------------------ */
 
 JNIEXPORT void JNICALL
-Java_com_aspect_verity_Verity_nativeFreeProver(
+Java_atheon_verity_Verity_nativeFreeProver(
     JNIEnv *env, jclass clazz, jlong proverHandle)
 {
     if (proverHandle != 0) {
@@ -515,7 +515,7 @@ Java_com_aspect_verity_Verity_nativeFreeProver(
 }
 
 JNIEXPORT void JNICALL
-Java_com_aspect_verity_Verity_nativeFreeVerifier(
+Java_atheon_verity_Verity_nativeFreeVerifier(
     JNIEnv *env, jclass clazz, jlong verifierHandle)
 {
     if (verifierHandle != 0) {
