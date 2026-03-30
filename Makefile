@@ -1,14 +1,15 @@
 VERSION := $(shell cat VERSION)
+PROVEKIT_PATH ?= ../provekit
 
 # ── Core builds ────────────────────────────────────────────────────────
 
 .PHONY: core-ios core-android core-wasm core-native core-all
 
 core-ios:
-	bash core/build/build-ios.sh
+	bash core/build/build-ios.sh $(PROVEKIT_PATH)
 
 core-android:
-	bash core/build/build-android.sh
+	bash core/build/build-android.sh $(PROVEKIT_PATH)
 
 core-wasm:
 	bash core/build/build-wasm.sh
