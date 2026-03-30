@@ -7,7 +7,7 @@ sealed class VerityException(message: String, cause: Throwable? = null) : Except
     class InvalidInput(detail: String) : VerityException("Invalid input: $detail")
 
     /** Failed to read scheme or circuit file. Check that the file path exists and is readable. */
-    class SchemeReadError : VerityException("Failed to read scheme/circuit file. Check that the path exists and is readable.")
+    class SchemeReadError(cause: Throwable? = null) : VerityException("Failed to read scheme/circuit file. Check that the path exists and is readable.", cause)
 
     /** Proof generation failed. */
     class ProofFailed(detail: String) : VerityException("Proof generation failed: $detail")

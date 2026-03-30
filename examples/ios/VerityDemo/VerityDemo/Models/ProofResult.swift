@@ -1,7 +1,7 @@
 import Foundation
 import Verity
 
-struct DemoCircuit: Identifiable {
+struct DemoCircuit: Identifiable, Sendable {
     let id = UUID()
     let name: String
     let description: String
@@ -14,7 +14,7 @@ let bundledCircuits = [
     DemoCircuit(name: "Age Check", description: "Passport age verification — larger circuit", filePrefix: "complete_age_check"),
 ]
 
-struct ProofResult {
+struct ProofResult: Sendable {
     let circuit: DemoCircuit
     let backend: Backend
     let proof: Proof

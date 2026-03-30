@@ -2,16 +2,12 @@ import Foundation
 
 /// Errors returned by Verity operations.
 public enum VerityError: LocalizedError, Equatable {
-    /// Library not initialized.
-    case notInitialized
     /// Invalid input provided to an FFI function.
     case invalidInput(String)
     /// Failed to read scheme/circuit file.
     case schemeReadError
     /// Proof generation failed.
     case proofFailed(String)
-    /// Proof verification failed.
-    case verificationFailed
     /// Serialization error.
     case serializationError
     /// Circuit compilation failed.
@@ -25,16 +21,12 @@ public enum VerityError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .notInitialized:
-            return "Verity not initialized. Create a Verity instance first: try Verity(backend: .provekit)"
         case .invalidInput(let msg):
             return "Invalid input: \(msg)"
         case .schemeReadError:
             return "Failed to read scheme or circuit file. Check that the file path exists and is readable."
         case .proofFailed(let msg):
             return "Proof generation failed: \(msg)"
-        case .verificationFailed:
-            return "Proof verification failed."
         case .serializationError:
             return "Serialization error. The data may be corrupted or from an incompatible version."
         case .compilationFailed(let msg):

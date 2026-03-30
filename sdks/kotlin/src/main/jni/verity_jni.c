@@ -64,7 +64,7 @@ static void throw_verity_error(JNIEnv *env, int code) {
     }
     if (exc != NULL) {
         (*env)->Throw(env, exc);
-        (*env)->DeleteLocalRef(env, exc);
+        // exc local ref cleaned up automatically on native method return
     }
 }
 

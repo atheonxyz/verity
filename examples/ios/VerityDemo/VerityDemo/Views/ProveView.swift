@@ -8,8 +8,9 @@ struct ProveView: View {
     @State private var result: ProofResult?
     @State private var isRunning = false
     @State private var error: String?
+    @State private var runTask: Task<Void, Never>?
 
-    private let service = VerityService()
+    @State private var service = VerityService()
 
     var body: some View {
         ScrollView {
@@ -56,6 +57,7 @@ struct ProveView: View {
             .padding()
         }
         .navigationTitle(circuit.name)
+        .onDisappear { runTask?.cancel() }
     }
 
     private func run() {
@@ -63,7 +65,7 @@ struct ProveView: View {
         error = nil
         result = nil
 
-        Task {
+        runTask = Task {
             do {
                 let r = try await service.generateAndVerify(
                     circuit: circuit, backend: selectedBackend

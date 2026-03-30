@@ -10,7 +10,7 @@ package com.atheon.verity
  * structural equality — equals/hashCode are implemented manually
  * using contentEquals/contentHashCode.
  */
-class Proof(data: ByteArray) {
+class Proof internal constructor(data: ByteArray) {
     /** The raw proof bytes. */
     val data: ByteArray = data.copyOf()
 

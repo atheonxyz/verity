@@ -164,7 +164,7 @@ class Verity(private val backend: Backend) {
                 require(!swapFilePath.isNullOrEmpty()) { "swapFilePath is required when useFileBacked is true" }
             }
             loadLibrary()
-            val code = nativeConfigureMemory(ramLimitBytes, useFileBacked, swapFilePath ?: "")
+            val code = nativeConfigureMemory(ramLimitBytes, useFileBacked, swapFilePath)
             if (code != 0) throw VerityException.fromCode(code)
         }
 
@@ -278,7 +278,7 @@ class Verity(private val backend: Backend) {
         private external fun nativeFreeVerifier(verifierHandle: Long)
 
         @JvmStatic
-        private external fun nativeConfigureMemory(ramLimitBytes: Long, useFileBacked: Boolean, swapFilePath: String): Int
+        private external fun nativeConfigureMemory(ramLimitBytes: Long, useFileBacked: Boolean, swapFilePath: String?): Int
 
         @JvmStatic
         private external fun nativeGetMemoryStats(): MemoryStats

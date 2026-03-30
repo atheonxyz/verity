@@ -257,7 +257,7 @@ class VerityInstrumentedTest {
     fun testVerifyGarbageProof() {
         val verity = Verity(Backend.PROVEKIT)
         verity.prepare(loadCircuit()).use { scheme ->
-            val garbage = Proof(ByteArray(128) { 0x42 })
+            val garbage = Proof.fromBytes(ByteArray(128) { 0x42 })
             val result = scheme.verifier.verify(garbage)
             assertFalse("Garbage proof should not verify", result)
         }

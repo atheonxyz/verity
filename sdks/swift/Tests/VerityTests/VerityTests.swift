@@ -151,6 +151,13 @@ final class VerityTests: XCTestCase {
         }
     }
 
+    func testEmptyWitnessValuesThrows() {
+        let witness = Witness(values: [:])
+        XCTAssertThrowsError(try witness.resolve()) { error in
+            XCTAssertTrue(error is VerityError, "Expected VerityError, got \(error)")
+        }
+    }
+
     // MARK: - Negative Tests
 
     func testPrepareNonexistentCircuit() throws {

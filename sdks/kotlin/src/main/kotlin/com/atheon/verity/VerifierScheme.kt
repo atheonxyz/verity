@@ -11,7 +11,7 @@ import kotlin.concurrent.write
  * Thread-safe: can be reused for concurrent verify calls.
  * Must be [close]d when no longer needed (or use [use]).
  */
-class VerifierScheme internal constructor(private val handle: Long) : AutoCloseable {
+class VerifierScheme internal constructor(private var handle: Long) : AutoCloseable {
 
     private val lock = ReentrantReadWriteLock()
     private var closed = false
@@ -73,7 +73,9 @@ class VerifierScheme internal constructor(private val handle: Long) : AutoClosea
     override fun close() = lock.write {
         if (!closed) {
             closed = true
-            Verity.freeVerifier(handle)
+            val h = handle
+            handle = 0L
+            Verity.freeVerifier(h)
         }
     }
 

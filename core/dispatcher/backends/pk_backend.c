@@ -31,6 +31,7 @@ _Static_assert(sizeof(PKBuf) == sizeof(RawBuf), "PKBuf and RawBuf size mismatch"
 _Static_assert(offsetof(PKBuf, ptr) == offsetof(RawBuf, ptr), "PKBuf.ptr offset mismatch");
 _Static_assert(offsetof(PKBuf, len) == offsetof(RawBuf, len), "PKBuf.len offset mismatch");
 _Static_assert(offsetof(PKBuf, cap) == offsetof(RawBuf, cap), "PKBuf.cap offset mismatch");
+_Static_assert(_Alignof(PKBuf) == _Alignof(RawBuf), "PKBuf/RawBuf alignment mismatch");
 
 // ── Thin wrappers (cast typed pointers to void*) ───────────────────────────
 

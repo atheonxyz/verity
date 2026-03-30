@@ -299,21 +299,18 @@ void verity_free_buf(VerityBuf buf) {
 
     RawBuf raw = { .ptr = buf.ptr, .len = buf.len, .cap = buf.cap };
     const VerityVtable *vt = get_vt(buf.backend);
-    if (vt && vt->free_buf) {
+    if (vt) {  // free_buf guaranteed non-NULL by verity_register_backend validation
         vt->free_buf(raw);
         return;
     }
-    // Fallback: try the first registered backend (all current backends
-    // use Rust's global allocator, so any backend can free any buffer).
-    for (int i = 0; i < VERITY_MAX_BACKENDS; i++) {
-        if (g_backends[i] && g_backends[i]->free_buf) {
-            g_backends[i]->free_buf(raw);
-            return;
-        }
-    }
+    // No fallback: if the backend tag is invalid, leak rather than risk
+    // heap corruption from using the wrong deallocator.
 }
 
 // ── Memory (ProveKit-specific) ─────────────────────────────────────────────
+
+extern int pk_configure_memory(uintptr_t, bool, const char *);
+extern int pk_get_memory_stats(uintptr_t *, uintptr_t *, uintptr_t *);
 
 int verity_pk_configure_memory(uintptr_t ram_limit_bytes,
                             bool use_file_backed,
@@ -321,8 +318,8 @@ int verity_pk_configure_memory(uintptr_t ram_limit_bytes,
     if (use_file_backed && !swap_file_path) return VERITY_INVALID_INPUT;
     if (use_file_backed && swap_file_path[0] == '\0') return VERITY_INVALID_INPUT;
     if (!get_vt(VERITY_BACKEND_PROVEKIT)) return VERITY_UNKNOWN_BACKEND;
-    extern int pk_configure_memory(uintptr_t, bool, const char *);
-    return pk_configure_memory(ram_limit_bytes, use_file_backed, swap_file_path);
+    return pk_configure_memory(ram_limit_bytes, use_file_backed,
+                               swap_file_path ? swap_file_path : "");
 }
 
 int verity_pk_get_memory_stats(uintptr_t *ram_used,
@@ -330,6 +327,5 @@ int verity_pk_get_memory_stats(uintptr_t *ram_used,
                             uintptr_t *peak_ram) {
     if (!ram_used || !swap_used || !peak_ram) return VERITY_INVALID_INPUT;
     if (!get_vt(VERITY_BACKEND_PROVEKIT)) return VERITY_UNKNOWN_BACKEND;
-    extern int pk_get_memory_stats(uintptr_t *, uintptr_t *, uintptr_t *);
     return pk_get_memory_stats(ram_used, swap_used, peak_ram);
 }

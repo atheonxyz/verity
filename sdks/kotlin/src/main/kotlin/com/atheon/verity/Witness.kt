@@ -61,10 +61,12 @@ class Witness private constructor(
         fun load(file: File): Witness = load(file.absolutePath)
 
         /**
-         * Create a witness from a map of field element strings.
+         * Create a witness from a flat map of scalar field element strings.
          *
          * Keys are circuit parameter names. Values are field element strings
          * (e.g., `"5"`, `"0x1a2b..."`, or decimal strings).
+         *
+         * For circuits with array or struct inputs, use [fromJson] instead.
          *
          * @param values Map of parameter names to field element strings.
          */
@@ -89,6 +91,11 @@ class Witness private constructor(
         @JvmStatic
         fun fromJson(json: String): Witness {
             require(json.isNotEmpty()) { "JSON string cannot be empty" }
+            try {
+                org.json.JSONObject(json)
+            } catch (e: org.json.JSONException) {
+                throw VerityException.InvalidInput("invalid witness JSON: ${e.message}")
+            }
             return Witness(Storage.RawJson(json))
         }
     }

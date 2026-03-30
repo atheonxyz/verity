@@ -30,6 +30,7 @@ _Static_assert(sizeof(BBBuf) == sizeof(RawBuf), "BBBuf and RawBuf size mismatch"
 _Static_assert(offsetof(BBBuf, ptr) == offsetof(RawBuf, ptr), "BBBuf.ptr offset mismatch");
 _Static_assert(offsetof(BBBuf, len) == offsetof(RawBuf, len), "BBBuf.len offset mismatch");
 _Static_assert(offsetof(BBBuf, cap) == offsetof(RawBuf, cap), "BBBuf.cap offset mismatch");
+_Static_assert(_Alignof(BBBuf) == _Alignof(RawBuf), "BBBuf/RawBuf alignment mismatch");
 
 // ── BB has no separate init — SRS setup is lazy (inside prepare/prove) ─────
 

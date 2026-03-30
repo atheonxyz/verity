@@ -22,9 +22,9 @@ class Circuit private constructor(
     /** The raw circuit JSON data. Loaded lazily if the circuit was opened from a file path. */
     val data: ByteArray by lazy {
         rawData ?: try {
-            File(sourcePath!!).readBytes()
+            File(sourcePath ?: error("Circuit has no data source")).readBytes()
         } catch (e: Exception) {
-            throw VerityException.SchemeReadError()
+            throw VerityException.SchemeReadError(e)
         }
     }
 
@@ -40,7 +40,7 @@ class Circuit private constructor(
 
         val tmp = File.createTempFile("verity_circuit_", ".json")
         try {
-            tmp.writeBytes(rawData!!)
+            tmp.writeBytes(rawData ?: error("Circuit has no data to write"))
         } catch (e: Exception) {
             tmp.delete()
             throw e

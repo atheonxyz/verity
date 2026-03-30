@@ -11,7 +11,7 @@ import kotlin.concurrent.write
  * Thread-safe: can be reused for concurrent prove calls.
  * Must be [close]d when no longer needed (or use [use]).
  */
-class ProverScheme internal constructor(private val handle: Long) : AutoCloseable {
+class ProverScheme internal constructor(private var handle: Long) : AutoCloseable {
 
     private val lock = ReentrantReadWriteLock()
     private var closed = false
@@ -76,7 +76,9 @@ class ProverScheme internal constructor(private val handle: Long) : AutoCloseabl
     override fun close() = lock.write {
         if (!closed) {
             closed = true
-            Verity.freeProver(handle)
+            val h = handle
+            handle = 0L
+            Verity.freeProver(h)
         }
     }
 
