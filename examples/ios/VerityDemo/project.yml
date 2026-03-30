@@ -1,0 +1,26 @@
+name: VerityDemo
+options:
+  bundleIdPrefix: com.atheon
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "16.0"
+
+packages:
+  Verity:
+    path: ../../sdks/swift
+
+targets:
+  VerityDemo:
+    type: application
+    platform: iOS
+    sources:
+      - VerityDemo
+    dependencies:
+      - package: Verity
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.atheon.verity.demo
+      GENERATE_INFOPLIST_FILE: true
+      INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
+      INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
+      INFOPLIST_KEY_UILaunchScreen_Generation: true
+      INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Deep indigo / teal palette -->
+    <color name="md_primary">#1A56DB</color>
+    <color name="md_on_primary">#FFFFFF</color>
+    <color name="md_primary_container">#D6E4FF</color>
+    <color name="md_on_primary_container">#001B3D</color>
+
+    <color name="md_secondary">#0E9F6E</color>
+    <color name="md_on_secondary">#FFFFFF</color>
+    <color name="md_secondary_container">#C6F7E2</color>
+    <color name="md_on_secondary_container">#003822</color>
+
+    <color name="md_surface">#FAFAFA</color>
+    <color name="md_on_surface">#1C1B1F</color>
+    <color name="md_surface_variant">#E7E0EC</color>
+    <color name="md_on_surface_variant">#49454F</color>
+
+    <color name="md_error">#DC2626</color>
+
+    <color name="valid_green">#16A34A</color>
+    <color name="invalid_red">#DC2626</color>
+    <color name="proof_hex_bg">#F1F5F9</color>
+</resources>
