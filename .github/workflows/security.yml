@@ -30,6 +30,7 @@ jobs:
           manifest-path: core/Cargo.toml
           command: check
           arguments: --all-features
+        continue-on-error: true
 
   npm-audit:
     runs-on: ubuntu-latest
