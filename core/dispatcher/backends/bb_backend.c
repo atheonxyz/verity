@@ -1,6 +1,6 @@
 /// Barretenberg backend registration — connects bb_* functions to the vtable.
 
-#include "verity_backend.h"
+#include "../verity_backend.h"
 
 // ── Extern declarations for bb_* symbols (from VerityFFI xcframework) ──────
 

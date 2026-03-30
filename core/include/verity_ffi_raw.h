@@ -4,7 +4,7 @@
 /// Raw backend symbols from the xcframework (pk_* and bb_*).
 /// This header is used by the VerityDispatch C dispatcher to link against
 /// the pre-built static libraries. It is NOT the public SDK header.
-/// The public header is Sources/VerityDispatch/include/verity_ffi.h.
+/// The public header is core/include/verity_ffi.h.
 
 #include <stdint.h>
 #include <stdbool.h>

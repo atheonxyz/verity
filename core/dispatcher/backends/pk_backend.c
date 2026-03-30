@@ -1,6 +1,6 @@
 /// ProveKit backend registration — connects pk_* functions to the vtable.
 
-#include "verity_backend.h"
+#include "../verity_backend.h"
 
 // ── Extern declarations for pk_* symbols (from VerityFFI xcframework) ──────
 
