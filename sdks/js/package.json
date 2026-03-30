@@ -1,0 +1,43 @@
+{
+  "name": "@atheon/verity",
+  "version": "0.2.0",
+  "description": "Zero-knowledge proof SDK for Node.js and browsers",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/atheonxyz/verity",
+    "directory": "sdks/js"
+  },
+  "type": "module",
+  "main": "./dist/node/index.js",
+  "module": "./dist/browser/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "node": {
+        "import": "./dist/node/index.js",
+        "require": "./dist/node/index.cjs"
+      },
+      "browser": {
+        "import": "./dist/browser/index.js"
+      },
+      "default": "./dist/browser/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  }
+}
