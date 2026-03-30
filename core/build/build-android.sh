@@ -31,31 +31,34 @@ echo "=== Building Verity core for Android ==="
 echo "Core dir:      $CORE_DIR"
 echo "ProveKit root: $PROVEKIT_ROOT"
 
+CARGO_PROFILE="${CARGO_PROFILE:-release-mobile}"
+echo "Using cargo profile: $CARGO_PROFILE"
+
 rustup target add "$ANDROID_ARM64" "$ANDROID_X86" 2>/dev/null || true
 
 # Build provekit-ffi
 pushd "$PROVEKIT_ROOT" > /dev/null
 echo "Building provekit-ffi for $ANDROID_ARM64..."
-cargo build --release --target "$ANDROID_ARM64" -p provekit-ffi
+cargo build --profile "$CARGO_PROFILE" --target "$ANDROID_ARM64" -p provekit-ffi
 echo "Building provekit-ffi for $ANDROID_X86..."
-cargo build --release --target "$ANDROID_X86" -p provekit-ffi
+cargo build --profile "$CARGO_PROFILE" --target "$ANDROID_X86" -p provekit-ffi
 popd > /dev/null
 
 # Build all core backends
 pushd "$CORE_DIR" > /dev/null
 echo "Building core backends for $ANDROID_ARM64..."
-cargo build --release --target "$ANDROID_ARM64"
+cargo build --profile "$CARGO_PROFILE" --target "$ANDROID_ARM64"
 echo "Building core backends for $ANDROID_X86..."
-cargo build --release --target "$ANDROID_X86"
+cargo build --profile "$CARGO_PROFILE" --target "$ANDROID_X86"
 popd > /dev/null
 
 # Collect outputs
 mkdir -p "$OUTPUT_DIR/arm64-v8a" "$OUTPUT_DIR/x86_64"
 
-find "$PROVEKIT_ROOT/target/$ANDROID_ARM64/release" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/arm64-v8a/" \;
-find "$CORE_DIR/target/$ANDROID_ARM64/release" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/arm64-v8a/" \;
+find "$PROVEKIT_ROOT/target/$ANDROID_ARM64/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/arm64-v8a/" \;
+find "$CORE_DIR/target/$ANDROID_ARM64/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/arm64-v8a/" \;
 
-find "$PROVEKIT_ROOT/target/$ANDROID_X86/release" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/x86_64/" \;
-find "$CORE_DIR/target/$ANDROID_X86/release" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/x86_64/" \;
+find "$PROVEKIT_ROOT/target/$ANDROID_X86/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/x86_64/" \;
+find "$CORE_DIR/target/$ANDROID_X86/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/x86_64/" \;
 
 echo "=== Done: $OUTPUT_DIR ==="
