@@ -1,4 +1,4 @@
-package com.atheon.verity
+package xyz.atheon.verity
 
 /** Errors returned by Verity operations. */
 sealed class VerityException(message: String, cause: Throwable? = null) : Exception(message, cause) {

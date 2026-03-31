@@ -1,4 +1,4 @@
-package com.atheon.verity
+package xyz.atheon.verity
 
 import org.json.JSONObject
 import java.io.File
@@ -97,9 +97,9 @@ class Witness private constructor(
                 require(normalized.endsWith("}")) { "witness JSON must be an object" }
                 JSONObject(normalized)
             } catch (e: org.json.JSONException) {
-                throw VerityException.InvalidInput("invalid witness JSON: ${e.message}")
+                throw VerityException.InvalidInput("invalid witness JSON syntax")
             } catch (e: IllegalArgumentException) {
-                throw VerityException.InvalidInput(e.message ?: "invalid witness JSON")
+                throw VerityException.InvalidInput(e.message ?: "invalid witness JSON syntax")
             }
             return Witness(Storage.RawJson(normalized))
         }

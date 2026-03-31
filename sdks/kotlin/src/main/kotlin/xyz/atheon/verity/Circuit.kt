@@ -1,4 +1,4 @@
-package com.atheon.verity
+package xyz.atheon.verity
 
 import java.io.File
 
@@ -38,7 +38,9 @@ class Circuit private constructor(
     internal fun resolvePath(): Pair<String, Boolean> {
         if (sourcePath != null) return Pair(sourcePath, false)
 
-        val tmp = File.createTempFile("verity_circuit_", ".json")
+        val tmpDir = File(System.getProperty("java.io.tmpdir", "/data/local/tmp"), "verity")
+        tmpDir.mkdirs()
+        val tmp = File.createTempFile("verity_circuit_", ".json", tmpDir)
         try {
             tmp.writeBytes(rawData ?: error("Circuit has no data to write"))
         } catch (e: Exception) {

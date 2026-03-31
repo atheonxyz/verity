@@ -15,7 +15,7 @@ check() {
 }
 
 # Kotlin — Verity.kt
-KT_VER=$(grep -oP 'const val VERSION = "\K[^"]+' sdks/kotlin/src/main/kotlin/com/atheon/verity/Verity.kt 2>/dev/null || echo "NOT_FOUND")
+KT_VER=$(grep -oP 'const val VERSION = "\K[^"]+' sdks/kotlin/src/main/kotlin/xyz/atheon/verity/Verity.kt 2>/dev/null || echo "NOT_FOUND")
 check "Verity.kt" "$KT_VER" "Kotlin SDK"
 
 # Swift — Verity.swift

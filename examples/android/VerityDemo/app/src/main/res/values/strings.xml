@@ -3,8 +3,8 @@
     <string name="app_name">Verity Demo</string>
     <string name="circuit_label">Circuit</string>
     <string name="backend_label">Backend</string>
-    <string name="btn_generate">Generate Proof</string>
-    <string name="btn_verify">Verify Proof</string>
+    <string name="btn_generate">Generate &amp; Verify</string>
+    <string name="btn_reverify">Re-verify</string>
     <string name="status_ready">Select a circuit and backend, then generate a proof.</string>
     <string name="status_preparing">Preparing circuit\u2026</string>
     <string name="status_proving">Generating proof\u2026</string>

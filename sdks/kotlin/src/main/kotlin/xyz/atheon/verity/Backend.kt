@@ -1,4 +1,4 @@
-package com.atheon.verity
+package xyz.atheon.verity
 
 /** Available proving backends. */
 enum class Backend(val code: Int) {

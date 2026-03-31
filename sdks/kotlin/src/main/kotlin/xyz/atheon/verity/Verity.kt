@@ -1,4 +1,4 @@
-package com.atheon.verity
+package xyz.atheon.verity
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -52,16 +52,23 @@ class Verity(private val backend: Backend) {
         require(path.isNotEmpty()) { "circuit path cannot be empty" }
         try {
             val handles = nativePrepare(backend.code, path)
-            val prover = ProverScheme(handles[0])
+            val prover: ProverScheme
+            val verifier: VerifierScheme
             try {
-                return PreparedScheme(
-                    prover = prover,
-                    verifier = VerifierScheme(handles[1]),
-                )
+                prover = ProverScheme(handles[0])
             } catch (e: Throwable) {
-                prover.close()
+                freeProver(handles[0])
+                freeVerifier(handles[1])
                 throw e
             }
+            try {
+                verifier = VerifierScheme(handles[1])
+            } catch (e: Throwable) {
+                prover.close()
+                freeVerifier(handles[1])
+                throw e
+            }
+            return PreparedScheme(prover = prover, verifier = verifier)
         } finally {
             if (isTemporary) java.io.File(path).delete()
         }
@@ -190,7 +197,6 @@ class Verity(private val backend: Backend) {
             if (!libraryLoaded) {
                 synchronized(Companion) {
                     if (!libraryLoaded) {
-                        System.loadLibrary("provekit_ffi")
                         System.loadLibrary("verity_jni")
                         // Set HOME for backends that need writable dirs (e.g., Barretenberg SRS).
                         val tmpDir = System.getProperty("java.io.tmpdir") ?: "/data/local/tmp"
@@ -226,13 +232,20 @@ class Verity(private val backend: Backend) {
         private external fun nativePrepare(backend: Int, circuitPath: String): LongArray
 
         @JvmStatic
-        internal external fun nativeProveToml(proverHandle: Long, inputPath: String): ByteArray
+        private external fun nativeProveToml(proverHandle: Long, inputPath: String): ByteArray
 
         @JvmStatic
-        internal external fun nativeProveJson(proverHandle: Long, inputsJson: String): ByteArray
+        private external fun nativeProveJson(proverHandle: Long, inputsJson: String): ByteArray
 
         @JvmStatic
-        internal external fun nativeVerify(verifierHandle: Long, proof: ByteArray): Int
+        private external fun nativeVerify(verifierHandle: Long, proof: ByteArray): Int
+
+        @JvmStatic
+        internal fun proveToml(handle: Long, inputPath: String): ByteArray = nativeProveToml(handle, inputPath)
+        @JvmStatic
+        internal fun proveJson(handle: Long, inputsJson: String): ByteArray = nativeProveJson(handle, inputsJson)
+        @JvmStatic
+        internal fun verify(handle: Long, proof: ByteArray): Int = nativeVerify(handle, proof)
 
         @JvmStatic
         private external fun nativeLoadProver(backend: Int, path: String): Long

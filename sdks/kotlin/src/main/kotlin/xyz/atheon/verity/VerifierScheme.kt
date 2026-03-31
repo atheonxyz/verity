@@ -1,4 +1,4 @@
-package com.atheon.verity
+package xyz.atheon.verity
 
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
@@ -36,7 +36,7 @@ class VerifierScheme internal constructor(private var handle: Long) : AutoClosea
     @Throws(VerityException::class)
     fun verify(proof: Proof): Boolean = useHandle { handle ->
         require(proof.data.isNotEmpty()) { "proof cannot be empty" }
-        val code = Verity.nativeVerify(handle, proof.data)
+        val code = Verity.verify(handle, proof.data)
         when (code) {
             0 -> true
             4 -> false  // PROOF_ERROR = proof is mathematically invalid

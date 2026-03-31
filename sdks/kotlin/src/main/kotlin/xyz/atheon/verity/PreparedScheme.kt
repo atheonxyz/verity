@@ -1,4 +1,4 @@
-package com.atheon.verity
+package xyz.atheon.verity
 
 /**
  * Result of [Verity.prepare] — holds both prover and verifier schemes.
