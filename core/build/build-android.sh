@@ -28,6 +28,8 @@ if [ ! -f "$PROVEKIT_ROOT/Cargo.toml" ]; then
     exit 1
 fi
 
+# Default changed from release-mobile to release: the old custom profile only
+# differed by setting debug=0, which the standard release profile already does.
 CARGO_PROFILE="${CARGO_PROFILE:-release}"
 
 # -- Android NDK detection --

@@ -136,6 +136,10 @@ for entry in "${TARGETS[@]}"; do
     # Link into shared library
     echo "  Linking libverity_jni.so..."
     mkdir -p "$OUTPUT_DIR/$ABI"
+    # --allow-multiple-definition: provekit-ffi and barretenberg static archives
+    # both pull in overlapping low-level deps (blake3, lzma, etc.) that export
+    # identical symbols. The first definition wins; both are from the same
+    # upstream source at compatible versions.
     "$CC" -shared \
         -o "$OUTPUT_DIR/$ABI/libverity_jni.so" \
         -Wl,--allow-multiple-definition \

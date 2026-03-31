@@ -97,7 +97,7 @@ class Witness private constructor(
                 require(normalized.endsWith("}")) { "witness JSON must be an object" }
                 JSONObject(normalized)
             } catch (e: org.json.JSONException) {
-                throw VerityException.InvalidInput("invalid witness JSON syntax: ${e.message}")
+                throw VerityException.InvalidInput("invalid witness JSON syntax")
             } catch (e: IllegalArgumentException) {
                 throw VerityException.InvalidInput(e.message ?: "invalid witness JSON syntax")
             }

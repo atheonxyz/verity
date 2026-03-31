@@ -58,6 +58,7 @@ class Verity(private val backend: Backend) {
                 prover = ProverScheme(handles[0])
             } catch (e: Throwable) {
                 freeProver(handles[0])
+                freeVerifier(handles[1])
                 throw e
             }
             try {
