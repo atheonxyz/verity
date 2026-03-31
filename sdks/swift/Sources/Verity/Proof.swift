@@ -28,6 +28,10 @@ public struct Proof: Sendable, Equatable, Hashable, CustomStringConvertible {
         self.data = data
     }
 
+    public static func fromBytes(_ data: Data) -> Proof {
+        Proof(data: data)
+    }
+
     public var description: String {
         "Proof(\(size) bytes)"
     }

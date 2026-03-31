@@ -1,19 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 
-# Build core libraries for Android (arm64-v8a + x86_64).
+# Build core libraries for Android.
+#
+# Produces dynamic libraries (.so) for provekit-ffi and static libraries
+# for core backends. Android loads .so files at runtime via System.loadLibrary().
 #
 # Usage:
 #   bash core/build/build-android.sh <provekit-path>
 #   bash core/build/build-android.sh ../provekit
+#
+# ProveKit branch: ash/v1-ffi-sdk
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CORE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$CORE_DIR/.." && pwd)"
 OUTPUT_DIR="$REPO_DIR/output/android"
 
-ANDROID_ARM64="aarch64-linux-android"
-ANDROID_X86="x86_64-linux-android"
+SELECTED_ABIS="${VERITY_ANDROID_ABIS:-arm64-v8a}"
 
 if [ $# -lt 1 ]; then
     echo "Usage: bash core/build/build-android.sh <provekit-path>"
@@ -30,35 +34,67 @@ fi
 echo "=== Building Verity core for Android ==="
 echo "Core dir:      $CORE_DIR"
 echo "ProveKit root: $PROVEKIT_ROOT"
+echo "Android ABIs:  $SELECTED_ABIS"
 
 CARGO_PROFILE="${CARGO_PROFILE:-release-mobile}"
-echo "Using cargo profile: $CARGO_PROFILE"
+PROVEKIT_PROFILE="${PROVEKIT_PROFILE:-$CARGO_PROFILE}"
+echo "Using cargo profile: $CARGO_PROFILE (core), $PROVEKIT_PROFILE (provekit)"
 
-rustup target add "$ANDROID_ARM64" "$ANDROID_X86" 2>/dev/null || true
+TARGETS=()
+OUTPUT_ABIS=()
 
-# Build provekit-ffi
+IFS=',' read -r -a ABI_LIST <<< "$SELECTED_ABIS"
+for ABI in "${ABI_LIST[@]}"; do
+    case "$ABI" in
+        arm64-v8a)
+            TARGETS+=("aarch64-linux-android")
+            OUTPUT_ABIS+=("arm64-v8a")
+            ;;
+        x86_64)
+            TARGETS+=("x86_64-linux-android")
+            OUTPUT_ABIS+=("x86_64")
+            ;;
+        *)
+            echo "ERROR: Unsupported Android ABI '$ABI'"
+            exit 1
+            ;;
+    esac
+done
+
+rustup target add "${TARGETS[@]}" 2>/dev/null || true
+
+# Build provekit-ffi as cdylib (.so) for Android
 pushd "$PROVEKIT_ROOT" > /dev/null
-echo "Building provekit-ffi for $ANDROID_ARM64..."
-cargo build --profile "$CARGO_PROFILE" --target "$ANDROID_ARM64" -p provekit-ffi
-echo "Building provekit-ffi for $ANDROID_X86..."
-cargo build --profile "$CARGO_PROFILE" --target "$ANDROID_X86" -p provekit-ffi
+for TARGET in "${TARGETS[@]}"; do
+    echo "Building provekit-ffi (cdylib) for $TARGET..."
+    cargo rustc --profile "$PROVEKIT_PROFILE" --target "$TARGET" -p provekit-ffi --crate-type cdylib
+done
 popd > /dev/null
 
 # Build all core backends
 pushd "$CORE_DIR" > /dev/null
-echo "Building core backends for $ANDROID_ARM64..."
-cargo build --profile "$CARGO_PROFILE" --target "$ANDROID_ARM64"
-echo "Building core backends for $ANDROID_X86..."
-cargo build --profile "$CARGO_PROFILE" --target "$ANDROID_X86"
+for TARGET in "${TARGETS[@]}"; do
+    echo "Building core backends for $TARGET..."
+    cargo build --profile "$CARGO_PROFILE" --target "$TARGET"
+done
 popd > /dev/null
 
-# Collect outputs
-mkdir -p "$OUTPUT_DIR/arm64-v8a" "$OUTPUT_DIR/x86_64"
+for ABI in "${OUTPUT_ABIS[@]}"; do
+    mkdir -p "$OUTPUT_DIR/$ABI"
+done
 
-find "$PROVEKIT_ROOT/target/$ANDROID_ARM64/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/arm64-v8a/" \;
-find "$CORE_DIR/target/$ANDROID_ARM64/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/arm64-v8a/" \;
+for INDEX in "${!TARGETS[@]}"; do
+    TARGET="${TARGETS[$INDEX]}"
+    ABI="${OUTPUT_ABIS[$INDEX]}"
 
-find "$PROVEKIT_ROOT/target/$ANDROID_X86/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/x86_64/" \;
-find "$CORE_DIR/target/$ANDROID_X86/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/x86_64/" \;
+    find "$PROVEKIT_ROOT/target/$TARGET/$PROVEKIT_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/$ABI/" \;
+    find "$CORE_DIR/target/$TARGET/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/$ABI/" \;
+done
+
+echo ""
+echo "Output sizes:"
+for ABI in "${OUTPUT_ABIS[@]}"; do
+    ls -lh "$OUTPUT_DIR/$ABI/"*.so 2>/dev/null || echo "  (no .so files for $ABI)"
+done
 
 echo "=== Done: $OUTPUT_DIR ==="

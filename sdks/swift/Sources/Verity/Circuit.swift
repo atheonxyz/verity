@@ -24,6 +24,10 @@ public struct Circuit: Sendable {
         self.sourcePath = nil
     }
 
+    public static func fromBytes(_ data: Data) -> Circuit {
+        Circuit(data: data)
+    }
+
     private init(data: Data, sourcePath: String) {
         self.data = data
         self.sourcePath = sourcePath

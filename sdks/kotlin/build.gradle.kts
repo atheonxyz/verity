@@ -4,6 +4,8 @@ plugins {
     id("maven-publish")
 }
 
+val publishedAbis = listOf("arm64-v8a")
+
 android {
     namespace = "com.atheon.verity"
     compileSdk = 34
@@ -14,7 +16,7 @@ android {
         consumerProguardFiles("consumer-rules.pro")
 
         ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
+            abiFilters += publishedAbis
         }
     }
 
@@ -42,9 +44,16 @@ android {
             jniLibs.srcDirs("src/main/jniLibs")
         }
     }
+
+    packaging {
+        jniLibs {
+            excludes += listOf("**/x86_64/*.so")
+        }
+    }
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test:runner:1.5.2")
 }

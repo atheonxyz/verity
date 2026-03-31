@@ -3,8 +3,6 @@
 #include "../verity_backend.h"
 #include <stddef.h>
 
-// ── Extern declarations for bb_* symbols (from VerityFFI xcframework) ──────
-
 typedef struct BBProver BBProver;
 typedef struct BBVerifier BBVerifier;
 typedef struct { uint8_t *ptr; uintptr_t len; uintptr_t cap; } BBBuf;
@@ -21,22 +19,18 @@ extern int  bb_serialize_verifier(const BBVerifier *verifier, BBBuf *out);
 extern int  bb_prove_toml(const BBProver *prover, const char *toml_path, BBBuf *out);
 extern int  bb_prove_json(const BBProver *prover, const char *inputs_json, BBBuf *out);
 extern int  bb_verify(const BBVerifier *verifier, const uint8_t *proof_ptr, uintptr_t proof_len);
+extern int  bb_last_error_message(BBBuf *out);
 extern void bb_free_prover(BBProver *prover);
 extern void bb_free_verifier(BBVerifier *verifier);
 extern void bb_free_buf(BBBuf buf);
 
-// Verify BBBuf and RawBuf have identical layout (required for safe casts).
 _Static_assert(sizeof(BBBuf) == sizeof(RawBuf), "BBBuf and RawBuf size mismatch");
 _Static_assert(offsetof(BBBuf, ptr) == offsetof(RawBuf, ptr), "BBBuf.ptr offset mismatch");
 _Static_assert(offsetof(BBBuf, len) == offsetof(RawBuf, len), "BBBuf.len offset mismatch");
 _Static_assert(offsetof(BBBuf, cap) == offsetof(RawBuf, cap), "BBBuf.cap offset mismatch");
 _Static_assert(_Alignof(BBBuf) == _Alignof(RawBuf), "BBBuf/RawBuf alignment mismatch");
 
-// ── BB has no separate init — SRS setup is lazy (inside prepare/prove) ─────
-
 static int bb_init_noop(void) { return VERITY_SUCCESS; }
-
-// ── Thin wrappers ──────────────────────────────────────────────────────────
 
 static int w_bb_prepare(const char *path, void **p, void **v) {
     return bb_prepare(path, (BBProver **)p, (BBVerifier **)v);
@@ -74,6 +68,9 @@ static int w_bb_prove_json(const void *p, const char *json, RawBuf *out) {
 static int w_bb_verify(const void *v, const uint8_t *proof, uintptr_t len) {
     return bb_verify((const BBVerifier *)v, proof, len);
 }
+static int w_bb_last_error_message(RawBuf *out) {
+    return bb_last_error_message((BBBuf *)out);
+}
 static void w_bb_free_prover(void *p) {
     bb_free_prover((BBProver *)p);
 }
@@ -84,8 +81,6 @@ static void w_bb_free_buf(RawBuf buf) {
     BBBuf b = { .ptr = buf.ptr, .len = buf.len, .cap = buf.cap };
     bb_free_buf(b);
 }
-
-// ── Vtable ─────────────────────────────────────────────────────────────────
 
 static const VerityVtable bb_vtable = {
     .init                = bb_init_noop,
@@ -101,12 +96,12 @@ static const VerityVtable bb_vtable = {
     .prove_toml          = w_bb_prove_toml,
     .prove_json          = w_bb_prove_json,
     .verify              = w_bb_verify,
+    .last_error_message  = w_bb_last_error_message,
     .free_prover         = w_bb_free_prover,
     .free_verifier       = w_bb_free_verifier,
     .free_buf            = w_bb_free_buf,
 };
 
-/// Auto-register at library load time.
 __attribute__((constructor))
 static void bb_register(void) {
     verity_register_backend(VERITY_BACKEND_BARRETENBERG, &bb_vtable);

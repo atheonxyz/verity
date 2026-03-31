@@ -279,6 +279,8 @@ void verity_free_verifier(VerityVerifier *verifier);
  */
 void verity_free_buf(VerityBuf buf);
 
+int verity_last_error_message(VerityBackend backend, VerityBuf *out_message);
+
 /* ── Memory (ProveKit-specific — use verity_pk_ prefix) ──────────────── */
 
 /**

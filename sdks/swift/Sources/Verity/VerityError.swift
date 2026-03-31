@@ -16,6 +16,7 @@ public enum VerityError: LocalizedError, Equatable {
     case unknownBackend
     /// Memory allocation failed.
     case outOfMemory
+    case resourceClosed(String)
     /// Unknown FFI error with raw code.
     case ffiError(code: Int32)
 
@@ -35,6 +36,8 @@ public enum VerityError: LocalizedError, Equatable {
             return "Unknown backend. Use .provekit or .barretenberg."
         case .outOfMemory:
             return "Memory allocation failed. Consider configuring memory limits with Verity.configureMemory()."
+        case .resourceClosed(let msg):
+            return msg
         case .ffiError(let code):
             return "Internal FFI error (code \(code)). Please report this at https://github.com/atheonxyz/verity/issues"
         }

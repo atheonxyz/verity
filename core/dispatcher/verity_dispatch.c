@@ -32,7 +32,7 @@ void verity_register_backend(VerityBackend backend, const VerityVtable *vtable) 
         !vtable->save_prover || !vtable->save_verifier ||
         !vtable->serialize_prover || !vtable->serialize_verifier ||
         !vtable->prove_toml || !vtable->prove_json ||
-        !vtable->verify ||
+        !vtable->verify || !vtable->last_error_message ||
         !vtable->free_prover || !vtable->free_verifier ||
         !vtable->free_buf) return;
 
@@ -278,6 +278,26 @@ int verity_verify(const VerityVerifier *verifier,
     return vt->verify(verifier->handle, proof_ptr, proof_len);
 }
 
+int verity_last_error_message(VerityBackend backend, VerityBuf *out_message) {
+    if (!out_message) return VERITY_INVALID_INPUT;
+    out_message->ptr = NULL;
+    out_message->len = 0;
+    out_message->cap = 0;
+    out_message->backend = backend;
+
+    const VerityVtable *vt = get_vt(backend);
+    if (!vt) return VERITY_UNKNOWN_BACKEND;
+
+    RawBuf raw = {0};
+    int code = vt->last_error_message(&raw);
+    if (code == VERITY_SUCCESS) {
+        out_message->ptr = raw.ptr;
+        out_message->len = raw.len;
+        out_message->cap = raw.cap;
+    }
+    return code;
+}
+
 // ── Cleanup ────────────────────────────────────────────────────────────────
 
 void verity_free_prover(VerityProver *prover) {
@@ -299,12 +319,10 @@ void verity_free_buf(VerityBuf buf) {
 
     RawBuf raw = { .ptr = buf.ptr, .len = buf.len, .cap = buf.cap };
     const VerityVtable *vt = get_vt(buf.backend);
-    if (vt) {  // free_buf guaranteed non-NULL by verity_register_backend validation
+    if (vt) {
         vt->free_buf(raw);
         return;
     }
-    // No fallback: if the backend tag is invalid, leak rather than risk
-    // heap corruption from using the wrong deallocator.
 }
 
 // ── Memory (ProveKit-specific) ─────────────────────────────────────────────

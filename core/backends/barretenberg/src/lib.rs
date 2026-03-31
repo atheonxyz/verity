@@ -11,10 +11,13 @@ use {
         AcirField, FieldElement,
     },
     std::{
+        any::Any,
+        borrow::Cow,
         ffi::CStr,
         os::raw::{c_char, c_int},
         panic,
         path::Path,
+        sync::{Mutex, OnceLock},
     },
 };
 
@@ -76,11 +79,57 @@ pub struct BBVerifier {
 // ---------------------------------------------------------------------------
 
 #[inline]
+fn panic_payload_message(payload: &(dyn Any + Send)) -> Cow<'_, str> {
+    if let Some(message) = payload.downcast_ref::<&'static str>() {
+        return Cow::Borrowed(message);
+    }
+    if let Some(message) = payload.downcast_ref::<String>() {
+        return Cow::Owned(message.clone());
+    }
+    Cow::Borrowed("non-string panic payload")
+}
+
+fn last_error_message_store() -> &'static Mutex<Option<String>> {
+    static STORE: OnceLock<Mutex<Option<String>>> = OnceLock::new();
+    STORE.get_or_init(|| Mutex::new(None))
+}
+
+fn set_last_error_message(message: impl Into<String>) {
+    *last_error_message_store()
+        .lock()
+        .expect("last error mutex poisoned") = Some(message.into());
+}
+
+fn clear_last_error_message() {
+    *last_error_message_store()
+        .lock()
+        .expect("last error mutex poisoned") = None;
+}
+
+fn take_last_error_message() -> Option<String> {
+    last_error_message_store()
+        .lock()
+        .expect("last error mutex poisoned")
+        .take()
+}
+
+#[inline]
 fn catch_panic<F, T>(default: T, f: F) -> T
 where
     F: FnOnce() -> T + panic::UnwindSafe,
 {
-    panic::catch_unwind(f).unwrap_or(default)
+    match panic::catch_unwind(f) {
+        Ok(value) => {
+            clear_last_error_message();
+            value
+        }
+        Err(payload) => {
+            let message = panic_payload_message(payload.as_ref()).into_owned();
+            set_last_error_message(message.clone());
+            eprintln!("barretenberg-ffi panic: {}", message);
+            default
+        }
+    }
 }
 
 fn c_str_to_string(ptr: *const c_char) -> Result<String, c_int> {
@@ -228,10 +277,7 @@ fn toml_to_field_element(val: &toml::Value) -> Result<FieldElement> {
 
 // --- JSON input parsing ---
 
-fn read_inputs_json(
-    json_str: &str,
-    abi: &serde_json::Value,
-) -> Result<WitnessMap<FieldElement>> {
+fn read_inputs_json(json_str: &str, abi: &serde_json::Value) -> Result<WitnessMap<FieldElement>> {
     let json_obj: serde_json::Value =
         serde_json::from_str(json_str).context("Failed to parse inputs JSON")?;
     let json_map = json_obj
@@ -295,9 +341,7 @@ fn encode_json_value(
             let fields = abi_type["fields"]
                 .as_array()
                 .context("Tuple type missing 'fields'")?;
-            let arr = val
-                .as_array()
-                .context("Expected array for tuple type")?;
+            let arr = val.as_array().context("Expected array for tuple type")?;
             for (field_type, v) in fields.iter().zip(arr.iter()) {
                 encode_json_value(v, field_type, map, idx)?;
             }
@@ -306,9 +350,7 @@ fn encode_json_value(
             let fields = abi_type["fields"]
                 .as_array()
                 .context("Struct type missing 'fields'")?;
-            let obj = val
-                .as_object()
-                .context("Expected object for struct type")?;
+            let obj = val.as_object().context("Expected object for struct type")?;
             for field in fields {
                 let field_name = field["name"]
                     .as_str()
@@ -328,7 +370,9 @@ fn encode_json_value(
 fn json_to_field_element(val: &serde_json::Value) -> Result<FieldElement> {
     match val {
         serde_json::Value::Number(n) => {
-            let i = n.as_u64().or_else(|| n.as_i64().map(|v| v as u64))
+            let i = n
+                .as_u64()
+                .or_else(|| n.as_i64().map(|v| v as u64))
                 .context("Cannot convert number to field element")?;
             Ok(FieldElement::from(i as u128))
         }
@@ -486,10 +530,7 @@ pub unsafe extern "C" fn bb_load_prover(path: *const c_char, out: *mut *mut BBPr
 /// - `path` must be a valid null-terminated C string.
 /// - `out` must be a valid, non-null pointer.
 #[no_mangle]
-pub unsafe extern "C" fn bb_load_verifier(
-    path: *const c_char,
-    out: *mut *mut BBVerifier,
-) -> c_int {
+pub unsafe extern "C" fn bb_load_verifier(path: *const c_char, out: *mut *mut BBVerifier) -> c_int {
     if out.is_null() {
         return INVALID_INPUT;
     }
@@ -567,9 +608,7 @@ pub unsafe extern "C" fn bb_load_verifier_bytes(
         *out = std::ptr::null_mut();
 
         let data = std::slice::from_raw_parts(ptr, len);
-        *out = Box::into_raw(Box::new(BBVerifier {
-            vk: data.to_vec(),
-        }));
+        *out = Box::into_raw(Box::new(BBVerifier { vk: data.to_vec() }));
         SUCCESS
     })
 }
@@ -755,8 +794,7 @@ pub unsafe extern "C" fn bb_prove_json(
 
         let result = (|| -> Result<Vec<u8>, c_int> {
             let json_str = c_str_to_string(inputs_json)?;
-            let witness =
-                read_inputs_json(&json_str, &(*prover).abi).map_err(|_| INVALID_INPUT)?;
+            let witness = read_inputs_json(&json_str, &(*prover).abi).map_err(|_| INVALID_INPUT)?;
             do_prove(&*prover, witness)
         })();
 
@@ -843,5 +881,71 @@ pub unsafe extern "C" fn bb_free_verifier(verifier: *mut BBVerifier) {
 pub unsafe extern "C" fn bb_free_buf(buf: BBBuf) {
     if !buf.ptr.is_null() && buf.cap > 0 {
         drop(Vec::from_raw_parts(buf.ptr, buf.len, buf.cap));
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn bb_last_error_message(out: *mut BBBuf) -> c_int {
+    if out.is_null() {
+        return INVALID_INPUT;
+    }
+
+    catch_panic(INVALID_INPUT, || {
+        *out = BBBuf::empty();
+        match take_last_error_message() {
+            Some(message) => {
+                *out = BBBuf::from_vec(message.into_bytes());
+                SUCCESS
+            }
+            None => SUCCESS,
+        }
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::CString;
+    use std::sync::{Mutex, MutexGuard, OnceLock};
+
+    fn test_guard() -> MutexGuard<'static, ()> {
+        static TEST_MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
+        TEST_MUTEX
+            .get_or_init(|| Mutex::new(()))
+            .lock()
+            .expect("test mutex poisoned")
+    }
+
+    #[test]
+    fn panic_payload_message_handles_str() {
+        assert_eq!(panic_payload_message(&"boom"), "boom");
+    }
+
+    #[test]
+    fn catch_panic_returns_default_on_panic() {
+        let _guard = test_guard();
+        let code = catch_panic(42, || -> i32 { panic!("boom") });
+        assert_eq!(code, 42);
+        assert_eq!(take_last_error_message(), Some(String::from("boom")));
+    }
+
+    #[test]
+    fn c_str_to_string_rejects_null() {
+        assert_eq!(c_str_to_string(std::ptr::null()), Err(INVALID_INPUT));
+    }
+
+    #[test]
+    fn c_str_to_string_accepts_utf8() {
+        let value = CString::new("hello").expect("CString should build");
+        assert_eq!(c_str_to_string(value.as_ptr()), Ok(String::from("hello")));
+    }
+
+    #[test]
+    fn catch_panic_clears_previous_error_on_success() {
+        let _guard = test_guard();
+        let _ = catch_panic(42, || -> i32 { panic!("boom") });
+        let code = catch_panic(7, || 9);
+        assert_eq!(code, 9);
+        assert_eq!(take_last_error_message(), None);
     }
 }

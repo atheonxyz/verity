@@ -14,6 +14,7 @@ public struct Witness: Sendable {
     internal enum Storage: Sendable {
         case toml(path: String)
         case values([String: String])
+        case json(String)
     }
 
     internal let storage: Storage
@@ -26,6 +27,26 @@ public struct Witness: Sendable {
     /// - Parameter values: Map of parameter names to field element strings.
     public init(values: [String: String]) {
         self.storage = .values(values)
+    }
+
+    public init(json: String) throws {
+        guard !json.isEmpty else {
+            throw VerityError.invalidInput("JSON string cannot be empty")
+        }
+
+        let jsonData = Data(json.utf8)
+        do {
+            let object = try JSONSerialization.jsonObject(with: jsonData)
+            guard object is [String: Any] else {
+                throw VerityError.invalidInput("witness JSON must be an object")
+            }
+        } catch let error as VerityError {
+            throw error
+        } catch {
+            throw VerityError.invalidInput("invalid witness JSON: \(error.localizedDescription)")
+        }
+
+        self.storage = .json(json)
     }
 
     /// Load witness values from a TOML file path (e.g., `Prover.toml` from `nargo execute`).
@@ -70,6 +91,8 @@ public struct Witness: Sendable {
                 throw VerityError.serializationError
             }
             return .json(jsonString)
+        case .json(let json):
+            return .json(json)
         }
     }
 }
