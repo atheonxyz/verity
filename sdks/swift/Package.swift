@@ -52,6 +52,10 @@ let package = Package(
             name: "VerityDispatch",
             dependencies: swiftSDKMode == .native ? ["VerityFFI"] : [],
             path: "VerityDispatch",
+            // Native mobile builds ship ProveKit only — the Barretenberg
+            // backend requires large SRS reference data that is impractical
+            // on memory-constrained devices.  bb_backend.c is intentionally
+            // excluded; see testBarretenbergIsUnavailableInNativeMobileArtifact.
             sources: swiftSDKMode == .native
                 ? [
                     "verity_dispatch.c",

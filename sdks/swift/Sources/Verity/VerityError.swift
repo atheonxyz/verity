@@ -16,6 +16,7 @@ public enum VerityError: LocalizedError, Equatable {
     case unknownBackend
     /// Memory allocation failed.
     case outOfMemory
+    /// The underlying FFI handle has been freed via `close()`.
     case resourceClosed(String)
     /// Unknown FFI error with raw code.
     case ffiError(code: Int32)

@@ -89,6 +89,12 @@ fn panic_payload_message(payload: &(dyn Any + Send)) -> Cow<'_, str> {
     Cow::Borrowed("non-string panic payload")
 }
 
+/// Global last-error store.
+///
+/// **Thread-safety:** this is a per-process (not per-thread) store.  A
+/// successful backend call on any thread clears the pending message.  Callers
+/// must retrieve the error immediately after a failing FFI call, before any
+/// other backend call from any thread.
 fn last_error_message_store() -> &'static Mutex<Option<String>> {
     static STORE: OnceLock<Mutex<Option<String>>> = OnceLock::new();
     STORE.get_or_init(|| Mutex::new(None))

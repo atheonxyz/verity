@@ -323,6 +323,8 @@ void verity_free_buf(VerityBuf buf) {
         vt->free_buf(raw);
         return;
     }
+    // No fallback: if the backend tag is invalid, leak rather than risk
+    // heap corruption from using the wrong deallocator.
 }
 
 // ── Memory (ProveKit-specific) ─────────────────────────────────────────────

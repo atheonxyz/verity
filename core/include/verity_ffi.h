@@ -279,6 +279,26 @@ void verity_free_verifier(VerityVerifier *verifier);
  */
 void verity_free_buf(VerityBuf buf);
 
+/**
+ * Retrieve the last error message from a backend, if any.
+ *
+ * After a verity_* call returns a non-zero error code, call this function to
+ * obtain a human-readable description of the failure.  The message is cleared
+ * once retrieved (i.e. a second call returns an empty buffer).
+ *
+ * @note **Thread-safety:** The error store is global (per-process), not
+ *       per-thread.  In a multi-threaded program a successful call on one
+ *       thread may clear the pending error set by a failing call on another.
+ *       Retrieve the error message immediately after a failing call, before
+ *       making any other backend call from any thread.
+ *
+ * @param backend      The backend to query.
+ * @param out_message  On success, receives the error string as a VerityBuf.
+ *                     If no error is pending, out_message->ptr is NULL and
+ *                     out_message->len is 0.  The caller must free a non-NULL
+ *                     buffer with verity_free_buf().
+ * @return VERITY_SUCCESS on success, or an error code.
+ */
 int verity_last_error_message(VerityBackend backend, VerityBuf *out_message);
 
 /* ── Memory (ProveKit-specific — use verity_pk_ prefix) ──────────────── */

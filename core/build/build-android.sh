@@ -100,6 +100,9 @@ toolchain_prefix_for_target() {
 }
 
 # Build provekit-ffi as cdylib (.so) for Android
+# Create a timestamp marker so we can distinguish freshly built artifacts from
+# stale ones left over by previous builds.
+BUILD_MARKER="$(mktemp)"
 pushd "$PROVEKIT_ROOT" > /dev/null
 for TARGET in "${TARGETS[@]}"; do
     TOOLCHAIN_PREFIX="$(toolchain_prefix_for_target "$TARGET")"
@@ -122,10 +125,12 @@ done
 for INDEX in "${!TARGETS[@]}"; do
     TARGET="${TARGETS[$INDEX]}"
     ABI="${OUTPUT_ABIS[$INDEX]}"
-    SO_SOURCE="$(find "$PROVEKIT_ROOT/target/$TARGET/$PROVEKIT_PROFILE" -path '*/deps/libprovekit_ffi-*.so' -type f | head -n 1)"
+    # Use -newer to only match artifacts produced by this build, avoiding stale
+    # outputs from previous runs that may linger in the deps/ directory.
+    SO_SOURCE="$(find "$PROVEKIT_ROOT/target/$TARGET/$PROVEKIT_PROFILE" -path '*/deps/libprovekit_ffi-*.so' -type f -newer "$BUILD_MARKER" | head -n 1)"
 
     if [ -z "$SO_SOURCE" ]; then
-        echo "ERROR: Could not find built provekit_ffi shared library for $TARGET"
+        echo "ERROR: Could not find freshly built provekit_ffi shared library for $TARGET"
         exit 1
     fi
 
@@ -135,6 +140,7 @@ for INDEX in "${!TARGETS[@]}"; do
         find "$OUTPUT_DIR/$ABI" -maxdepth 1 -name "*.so" -exec "$TOOLCHAIN_BIN/llvm-strip" -s {} \;
     fi
 done
+rm -f "$BUILD_MARKER"
 
 echo ""
 echo "Output sizes:"

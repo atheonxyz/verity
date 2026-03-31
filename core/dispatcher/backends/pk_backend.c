@@ -72,7 +72,9 @@ static int w_pk_last_error_message(RawBuf *out) {
     out->ptr = NULL;
     out->len = 0;
     out->cap = 0;
-    if (!pk_get_last_error) return VERITY_UNKNOWN_BACKEND;
+    // Weak import: if the ProveKit build does not expose pk_get_last_error,
+    // return success with an empty buffer (no error message available).
+    if (!pk_get_last_error) return VERITY_SUCCESS;
     return pk_get_last_error((PKBuf *)out);
 }
 static void w_pk_free_prover(void *p) {
