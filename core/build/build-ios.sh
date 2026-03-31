@@ -27,19 +27,32 @@ if [ ! -f "$PROVEKIT_ROOT/Cargo.toml" ]; then
     exit 1
 fi
 
-echo "=== Building Verity core for iOS ==="
-
-rustup target add "$IOS_DEVICE" "$IOS_SIM" 2>/dev/null || true
-
 CARGO_PROFILE="${CARGO_PROFILE:-release-mobile}"
 PROVEKIT_PROFILE="${PROVEKIT_PROFILE:-$CARGO_PROFILE}"
 IOS_DEPLOYMENT_TARGET="${IPHONEOS_DEPLOYMENT_TARGET:-15.0}"
 export IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
 export CMAKE_OSX_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
 export CARGO_PROFILE_RELEASE_MOBILE_DEBUG=0
-echo "Using cargo profile: $CARGO_PROFILE (core), $PROVEKIT_PROFILE (provekit)"
+
+# Show branch info and pull latest for both repos
+PROVEKIT_BRANCH=$(git -C "$PROVEKIT_ROOT" rev-parse --abbrev-ref HEAD)
+VERITY_BRANCH=$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD)
+
+echo "=== Building Verity core for iOS ==="
+echo "ProveKit root:   $PROVEKIT_ROOT"
+echo "ProveKit branch: $PROVEKIT_BRANCH"
+echo "Verity branch:   $VERITY_BRANCH"
+echo "Cargo profile:   $CARGO_PROFILE (core), $PROVEKIT_PROFILE (provekit)"
 echo "iOS deployment target: $IOS_DEPLOYMENT_TARGET"
 echo "release-mobile debug info: disabled"
+echo ""
+
+echo "Pulling latest changes..."
+git -C "$PROVEKIT_ROOT" pull --ff-only || echo "WARNING: Could not pull provekit (detached HEAD or no upstream?)"
+git -C "$REPO_DIR" pull --ff-only || echo "WARNING: Could not pull verity (detached HEAD or no upstream?)"
+echo ""
+
+rustup target add "$IOS_DEVICE" "$IOS_SIM" 2>/dev/null || true
 
 pushd "$PROVEKIT_ROOT" > /dev/null
 echo "Building provekit-ffi for $IOS_DEVICE..."

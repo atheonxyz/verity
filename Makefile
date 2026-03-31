@@ -42,13 +42,13 @@ test-all: test-swift test-kotlin test-js
 .PHONY: release-swift release-kotlin release-js
 
 release-swift: core-ios
-	bash sdks/swift/scripts/release.sh $(VERSION)
+	bash core/release/release-ios.sh $(VERSION)
 
 release-kotlin: core-android
-	bash sdks/kotlin/scripts/release.sh $(VERSION)
+	bash core/release/release-android.sh $(VERSION)
 
 release-js: core-wasm core-native
-	bash sdks/js/scripts/release.sh $(VERSION)
+	bash core/release/release-js.sh $(VERSION)
 
 # ── Lint & Format ─────────────────────────────────────────────────────
 
