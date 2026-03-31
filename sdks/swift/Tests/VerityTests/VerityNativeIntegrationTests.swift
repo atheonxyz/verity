@@ -26,17 +26,16 @@ final class VerityNativeIntegrationTests: XCTestCase {
         XCTAssertTrue(try scheme.verifier.verify(proof: proof))
     }
 
-    func testBarretenbergPrepareProveVerify() throws {
-        let verity = try Verity(backend: .barretenberg)
-        let circuit = try Circuit.load(from: fixturePath("circuit.json"))
-        let scheme = try verity.prepare(circuit: circuit)
-        let proof = try scheme.prover.prove(witness: try Witness.load(from: fixturePath("Prover.toml")))
-        XCTAssertFalse(proof.data.isEmpty)
-        XCTAssertTrue(try scheme.verifier.verify(proof: proof))
+    func testBarretenbergIsUnavailableInNativeMobileArtifact() {
+        XCTAssertThrowsError(try Verity(backend: .barretenberg)) { error in
+            XCTAssertEqual(error as? VerityError, .unknownBackend)
+        }
     }
 
     func testNativeLastErrorBufferIsEmptyWithoutFailure() throws {
-        XCTAssertNil(try Verity.lastErrorMessage(for: .barretenberg))
         XCTAssertNil(try Verity.lastErrorMessage(for: .provekit))
+        XCTAssertThrowsError(try Verity.lastErrorMessage(for: .barretenberg)) { error in
+            XCTAssertEqual(error as? VerityError, .unknownBackend)
+        }
     }
 }

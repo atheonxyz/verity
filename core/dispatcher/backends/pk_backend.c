@@ -9,7 +9,7 @@ typedef struct { uint8_t *ptr; uintptr_t len; uintptr_t cap; } PKBuf;
 
 extern int  pk_init(void);
 extern int  pk_get_last_error(PKBuf *out) __attribute__((weak_import));
-extern int  pk_prepare(const char *circuit_path, PKProver **out_prover, PKVerifier **out_verifier);
+extern int  pk_prepare(const char *circuit_path, int hash_config, PKProver **out_prover, PKVerifier **out_verifier);
 extern int  pk_load_prover(const char *path, PKProver **out);
 extern int  pk_load_verifier(const char *path, PKVerifier **out);
 extern int  pk_load_prover_bytes(const uint8_t *ptr, uintptr_t len, PKProver **out);
@@ -32,7 +32,7 @@ _Static_assert(offsetof(PKBuf, cap) == offsetof(RawBuf, cap), "PKBuf.cap offset 
 _Static_assert(_Alignof(PKBuf) == _Alignof(RawBuf), "PKBuf/RawBuf alignment mismatch");
 
 static int w_pk_prepare(const char *path, void **p, void **v) {
-    return pk_prepare(path, (PKProver **)p, (PKVerifier **)v);
+    return pk_prepare(path, 0, (PKProver **)p, (PKVerifier **)v);
 }
 static int w_pk_load_prover(const char *path, void **out) {
     return pk_load_prover(path, (PKProver **)out);

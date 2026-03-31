@@ -56,7 +56,6 @@ let package = Package(
                 ? [
                     "verity_dispatch.c",
                     "backends/pk_backend.c",
-                    "backends/bb_backend.c",
                 ]
                 : [
                     "stub/verity_dispatch_stub.c",
