@@ -7,6 +7,8 @@ set -euo pipefail
 #   bash core/build/build-android.sh <provekit-path>
 #   bash core/build/build-android.sh ../provekit
 #
+# ProveKit branch: v1
+#
 # Environment:
 #   ANDROID_NDK_HOME  — path to Android NDK (auto-detected if not set)
 #   CARGO_PROFILE     — Cargo build profile (default: release)

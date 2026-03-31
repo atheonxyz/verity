@@ -4,7 +4,7 @@ set -euo pipefail
 # Publish the JS SDK to npm.
 #
 # Usage:
-#   bash sdks/js/scripts/release.sh [version]
+#   bash core/release/release-js.sh [version]
 #
 # If version is omitted, reads from the VERSION file.
 #
@@ -12,8 +12,9 @@ set -euo pipefail
 #   NPM_TOKEN — npm authentication token with publish access
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SDK_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-REPO_DIR="$(cd "$SDK_DIR/../.." && pwd)"
+CORE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_DIR="$(cd "$CORE_DIR/.." && pwd)"
+SDK_DIR="$REPO_DIR/sdks/js"
 
 VERSION="${1:-$(cat "$REPO_DIR/VERSION" | tr -d '[:space:]')}"
 echo "Publishing @atheon/verity@$VERSION to npm"

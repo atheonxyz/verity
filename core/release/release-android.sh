@@ -4,7 +4,7 @@ set -euo pipefail
 # Publish the Kotlin SDK to Maven Central.
 #
 # Usage:
-#   bash sdks/kotlin/scripts/release.sh [version]
+#   bash core/release/release-android.sh [version]
 #
 # If version is omitted, reads from the VERSION file.
 #
@@ -15,8 +15,9 @@ set -euo pipefail
 #   SONATYPE_PASSWORD   — Maven Central (Sonatype) password
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SDK_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-REPO_DIR="$(cd "$SDK_DIR/../.." && pwd)"
+CORE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_DIR="$(cd "$CORE_DIR/.." && pwd)"
+SDK_DIR="$REPO_DIR/sdks/kotlin"
 
 VERSION="${1:-$(cat "$REPO_DIR/VERSION" | tr -d '[:space:]')}"
 echo "Publishing xyz.atheon:verity:$VERSION to Maven Central"

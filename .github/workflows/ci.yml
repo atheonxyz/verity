@@ -69,6 +69,7 @@ jobs:
     uses: ./.github/workflows/core-build.yml
     with:
       targets: "ios,android,wasm,native"
+      provekit-ref: "v1"
 
   test-swift:
     needs: [changes, core-build]
