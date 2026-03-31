@@ -1,20 +1,22 @@
 #!/bin/bash
 set -euo pipefail
 
+# Build core libraries for Android (arm64-v8a + x86_64).
 #
 # Usage:
 #   bash core/build/build-android.sh <provekit-path>
 #   bash core/build/build-android.sh ../provekit
 #
 # ProveKit branch: v1
+#
+# Environment:
+#   ANDROID_NDK_HOME  — path to Android NDK (auto-detected if not set)
+#   CARGO_PROFILE     — Cargo build profile (default: release)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CORE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$CORE_DIR/.." && pwd)"
 OUTPUT_DIR="$REPO_DIR/output/android"
-ANDROID_API_LEVEL="${ANDROID_API_LEVEL:-24}"
-
-SELECTED_ABIS="${VERITY_ANDROID_ABIS:-arm64-v8a}"
 
 if [ $# -lt 1 ]; then
     echo "Usage: bash core/build/build-android.sh <provekit-path>"
@@ -28,124 +30,98 @@ if [ ! -f "$PROVEKIT_ROOT/Cargo.toml" ]; then
     exit 1
 fi
 
-echo "=== Building Verity core for Android ==="
-echo "Core dir:      $CORE_DIR"
-echo "ProveKit root: $PROVEKIT_ROOT"
-echo "Android ABIs:  $SELECTED_ABIS"
+# Default changed from release-mobile to release: the old custom profile only
+# differed by setting debug=0, which the standard release profile already does.
+CARGO_PROFILE="${CARGO_PROFILE:-release}"
 
-if [ -n "${ANDROID_NDK_HOME:-}" ]; then
-    NDK_ROOT="$ANDROID_NDK_HOME"
-elif [ -n "${ANDROID_NDK_ROOT:-}" ]; then
-    NDK_ROOT="$ANDROID_NDK_ROOT"
-elif [ -d "$HOME/Library/Android/sdk/ndk" ]; then
-    NDK_ROOT="$(ls -d "$HOME/Library/Android/sdk/ndk"/* 2>/dev/null | sort -V | tail -n 1)"
-elif [ -d "$HOME/Library/Android/sdk/ndk-bundle" ]; then
-    NDK_ROOT="$HOME/Library/Android/sdk/ndk-bundle"
-else
-    echo "ERROR: Android NDK not found. Set ANDROID_NDK_HOME or install the NDK under ~/Library/Android/sdk/ndk."
+# -- Android NDK detection --
+if [ -z "${ANDROID_NDK_HOME:-}" ]; then
+    if [ -d "$HOME/Library/Android/sdk/ndk" ]; then
+        ANDROID_NDK_HOME="$(ls -d "$HOME/Library/Android/sdk/ndk/"* 2>/dev/null | sort -V | tail -1)"
+    elif [ -n "${ANDROID_HOME:-}" ] && [ -d "$ANDROID_HOME/ndk" ]; then
+        ANDROID_NDK_HOME="$(ls -d "$ANDROID_HOME/ndk/"* 2>/dev/null | sort -V | tail -1)"
+    fi
+fi
+
+if [ -z "${ANDROID_NDK_HOME:-}" ] || [ ! -d "$ANDROID_NDK_HOME" ]; then
+    echo "ERROR: Cannot find Android NDK. Set ANDROID_NDK_HOME."
     exit 1
 fi
 
-HOST_TAG="darwin-$(uname -m)"
-TOOLCHAIN_BIN="$NDK_ROOT/toolchains/llvm/prebuilt/$HOST_TAG/bin"
-
-if [ ! -d "$TOOLCHAIN_BIN" ]; then
-    ALT_PREBUILT="$(ls -d "$NDK_ROOT/toolchains/llvm/prebuilt"/darwin-* 2>/dev/null | head -n 1)"
-    if [ -n "$ALT_PREBUILT" ]; then
-        TOOLCHAIN_BIN="$ALT_PREBUILT/bin"
-    else
-        echo "ERROR: Android NDK LLVM toolchain not found at $TOOLCHAIN_BIN"
-        exit 1
-    fi
+# NDK toolchain
+TOOLCHAIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
+if [ ! -d "$TOOLCHAIN" ]; then
+    TOOLCHAIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/darwin-x86_64"
 fi
 
-echo "Android NDK:  $NDK_ROOT"
-echo "Toolchain:    $TOOLCHAIN_BIN"
+API_LEVEL=24
 
-CARGO_PROFILE="${CARGO_PROFILE:-release-mobile}"
-PROVEKIT_PROFILE="${PROVEKIT_PROFILE:-$CARGO_PROFILE}"
-export CARGO_PROFILE_RELEASE_MOBILE_DEBUG=0
-echo "Using cargo profile: $CARGO_PROFILE (core), $PROVEKIT_PROFILE (provekit)"
-echo "release-mobile debug info: disabled"
-
-TARGETS=()
-OUTPUT_ABIS=()
-
-IFS=',' read -r -a ABI_LIST <<< "$SELECTED_ABIS"
-for ABI in "${ABI_LIST[@]}"; do
-    case "$ABI" in
-        arm64-v8a)
-            TARGETS+=("aarch64-linux-android")
-            OUTPUT_ABIS+=("arm64-v8a")
-            ;;
-        x86_64)
-            TARGETS+=("x86_64-linux-android")
-            OUTPUT_ABIS+=("x86_64")
-            ;;
-        *)
-            echo "ERROR: Unsupported Android ABI '$ABI'"
-            exit 1
-            ;;
-    esac
-done
-
-rustup target add "${TARGETS[@]}" 2>/dev/null || true
-
-toolchain_prefix_for_target() {
-    case "$1" in
-        aarch64-linux-android) printf '%s' "aarch64-linux-android${ANDROID_API_LEVEL}" ;;
-        x86_64-linux-android) printf '%s' "x86_64-linux-android${ANDROID_API_LEVEL}" ;;
-        *) return 1 ;;
-    esac
-}
-
-# Build provekit-ffi as cdylib (.so) for Android
-# Create a timestamp marker so we can distinguish freshly built artifacts from
-# stale ones left over by previous builds.
-BUILD_MARKER="$(mktemp)"
-pushd "$PROVEKIT_ROOT" > /dev/null
-for TARGET in "${TARGETS[@]}"; do
-    TOOLCHAIN_PREFIX="$(toolchain_prefix_for_target "$TARGET")"
-    TARGET_ENV_NAME="${TARGET//-/_}"
-    TARGET_ENV_NAME="$(printf '%s' "$TARGET_ENV_NAME" | tr '[:lower:]' '[:upper:]')"
-    echo "Building provekit-ffi (cdylib) for $TARGET..."
-    env \
-        "CC_${TARGET//-/_}=$TOOLCHAIN_BIN/$TOOLCHAIN_PREFIX-clang" \
-        "CXX_${TARGET//-/_}=$TOOLCHAIN_BIN/$TOOLCHAIN_PREFIX-clang++" \
-        "AR_${TARGET//-/_}=$TOOLCHAIN_BIN/llvm-ar" \
-        "CARGO_TARGET_${TARGET_ENV_NAME}_LINKER=$TOOLCHAIN_BIN/$TOOLCHAIN_PREFIX-clang" \
-        cargo rustc --profile "$PROVEKIT_PROFILE" --target "$TARGET" -p provekit-ffi -- --crate-type=cdylib
-done
-popd > /dev/null
-
-for ABI in "${OUTPUT_ABIS[@]}"; do
-    mkdir -p "$OUTPUT_DIR/$ABI"
-done
-
-for INDEX in "${!TARGETS[@]}"; do
-    TARGET="${TARGETS[$INDEX]}"
-    ABI="${OUTPUT_ABIS[$INDEX]}"
-    # Use -newer to only match artifacts produced by this build, avoiding stale
-    # outputs from previous runs that may linger in the deps/ directory.
-    SO_SOURCE="$(find "$PROVEKIT_ROOT/target/$TARGET/$PROVEKIT_PROFILE" -path '*/deps/libprovekit_ffi-*.so' -type f -newer "$BUILD_MARKER" | head -n 1)"
-
-    if [ -z "$SO_SOURCE" ]; then
-        echo "ERROR: Could not find freshly built provekit_ffi shared library for $TARGET"
-        exit 1
-    fi
-
-    cp "$SO_SOURCE" "$OUTPUT_DIR/$ABI/libprovekit_ffi.so"
-
-    if [ -x "$TOOLCHAIN_BIN/llvm-strip" ]; then
-        find "$OUTPUT_DIR/$ABI" -maxdepth 1 -name "*.so" -exec "$TOOLCHAIN_BIN/llvm-strip" -s {} \;
-    fi
-done
-rm -f "$BUILD_MARKER"
-
+echo "=== Building Verity core for Android ==="
+echo "Core dir:      $CORE_DIR"
+echo "ProveKit root: $PROVEKIT_ROOT"
+echo "NDK:           $ANDROID_NDK_HOME"
+echo "Cargo profile: $CARGO_PROFILE"
 echo ""
-echo "Output sizes:"
-for ABI in "${OUTPUT_ABIS[@]}"; do
-    ls -lh "$OUTPUT_DIR/$ABI/"*.so 2>/dev/null || echo "  (no .so files for $ABI)"
+
+TARGETS=(
+    "aarch64-linux-android:arm64-v8a"
+    "x86_64-linux-android:x86_64"
+)
+
+# Ensure Rust targets installed
+for entry in "${TARGETS[@]}"; do
+    RUST_TARGET="${entry%%:*}"
+    rustup target add "$RUST_TARGET" 2>/dev/null || true
+done
+
+for entry in "${TARGETS[@]}"; do
+    RUST_TARGET="${entry%%:*}"
+    ABI="${entry##*:}"
+
+    echo "--- Building for $RUST_TARGET ($ABI) ---"
+
+    # Set NDK cross-compiler for Cargo
+    case "$RUST_TARGET" in
+        aarch64-linux-android) CC_PREFIX="aarch64-linux-android${API_LEVEL}" ;;
+        x86_64-linux-android)  CC_PREFIX="x86_64-linux-android${API_LEVEL}" ;;
+    esac
+
+    NDK_CC="${TOOLCHAIN}/bin/${CC_PREFIX}-clang"
+    NDK_AR="${TOOLCHAIN}/bin/llvm-ar"
+
+    # Cargo uses UPPER_UNDERSCORE for linker; cc-rs crate checks lowercase underscore forms
+    RUST_TARGET_UPPER="$(echo "${RUST_TARGET//-/_}" | tr '[:lower:]' '[:upper:]')"
+    RUST_TARGET_LOWER="$(echo "${RUST_TARGET//-/_}")"
+    export "CC_${RUST_TARGET_UPPER}=$NDK_CC"
+    export "AR_${RUST_TARGET_UPPER}=$NDK_AR"
+    export "CARGO_TARGET_${RUST_TARGET_UPPER}_LINKER=$NDK_CC"
+    export "CC_${RUST_TARGET_LOWER}=$NDK_CC"
+    export "AR_${RUST_TARGET_LOWER}=$NDK_AR"
+    # Do NOT set global CC/AR — it breaks host build-script compilation (e.g. ring crate)
+    unset CC AR 2>/dev/null || true
+
+    # Build provekit-ffi
+    pushd "$PROVEKIT_ROOT" > /dev/null
+    echo "  Building provekit-ffi..."
+    cargo build --profile "$CARGO_PROFILE" --target "$RUST_TARGET" -p provekit-ffi
+    popd > /dev/null
+
+    # Build core backends
+    pushd "$CORE_DIR" > /dev/null
+    echo "  Building core backends..."
+    cargo build --profile "$CARGO_PROFILE" --target "$RUST_TARGET"
+    popd > /dev/null
+
+    # Collect outputs
+    mkdir -p "$OUTPUT_DIR/$ABI"
+
+    find "$PROVEKIT_ROOT/target/$RUST_TARGET/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/$ABI/" \;
+    find "$CORE_DIR/target/$RUST_TARGET/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/$ABI/" \;
+
+    echo "  -> $OUTPUT_DIR/$ABI/"
+    echo ""
 done
 
 echo "=== Done: $OUTPUT_DIR ==="
+echo ""
+echo "Next step: run sdks/kotlin/scripts/build-android.sh to compile JNI bridge + link libverity_jni.so"
