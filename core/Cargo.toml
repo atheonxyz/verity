@@ -9,3 +9,8 @@ lto = "fat"
 codegen-units = 1
 strip = "symbols"
 opt-level = "z"
+
+[profile.release-mobile]
+inherits = "release"
+# Same as release — exists so build scripts can use a consistent profile name
+# across both the provekit and verity workspaces.

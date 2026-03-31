@@ -21,6 +21,11 @@ public enum Backend: UInt32, CaseIterable, Sendable, CustomStringConvertible {
     }
 }
 
+public enum RuntimeMode: String, Sendable {
+    case sourceOnly = "source-only"
+    case native
+}
+
 /// Result of ``Verity/prepare(circuit:)``.
 ///
 /// Both schemes are independent and can be passed to different tasks.
@@ -30,6 +35,11 @@ public struct PreparedScheme: Sendable {
     public let prover: ProverScheme
     /// Verifier scheme — call ``VerifierScheme/verify(proof:)`` to check proofs.
     public let verifier: VerifierScheme
+
+    public func close() {
+        prover.close()
+        verifier.close()
+    }
 }
 
 /// Verity — zero-knowledge proof SDK.
@@ -53,6 +63,14 @@ public final class Verity: @unchecked Sendable {
     /// The SDK version string (e.g., `"0.2.0"`).
     public static let version = "0.2.0"
 
+    public static let runtimeMode: RuntimeMode = {
+        #if VERITY_SWIFT_NATIVE_RUNTIME
+        return .native
+        #else
+        return .sourceOnly
+        #endif
+    }()
+
     /// Create a Verity instance with the specified backend.
     ///
     /// Automatically initializes the backend on first use. Thread-safe.
@@ -67,6 +85,23 @@ public final class Verity: @unchecked Sendable {
             }
         }
         self.backend = backend
+    }
+
+    public static func lastErrorMessage(for backend: Backend) throws -> String? {
+        var buf = VerityBuf(ptr: nil, len: 0, cap: 0, backend: 0)
+        let code = verity_last_error_message(backend.cValue, &buf)
+        guard code == 0 else {
+            throw VerityError.fromCode(code)
+        }
+        defer {
+            if buf.ptr != nil {
+                verity_free_buf(buf)
+            }
+        }
+        guard let ptr = buf.ptr, buf.len > 0 else {
+            return nil
+        }
+        return String(decoding: UnsafeBufferPointer(start: ptr, count: Int(buf.len)), as: UTF8.self)
     }
 
     // MARK: - Prepare

@@ -8,14 +8,26 @@ import VerityDispatch
 ///
 /// Thread-safe: all operations are internally synchronized.
 public final class ProverScheme: @unchecked Sendable {
-    internal let handle: OpaquePointer
+    internal var handle: OpaquePointer?
     private let lock = NSLock()
 
     internal init(handle: OpaquePointer) {
         self.handle = handle
     }
 
+    internal init() {
+        self.handle = nil
+    }
+
     deinit {
+        close()
+    }
+
+    public func close() {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let handle else { return }
+        self.handle = nil
         verity_free_prover(handle)
     }
 
@@ -33,6 +45,9 @@ public final class ProverScheme: @unchecked Sendable {
     public func prove(witness: Witness) throws -> Proof {
         lock.lock()
         defer { lock.unlock() }
+        guard let handle else {
+            throw VerityError.resourceClosed("FFI handle is closed")
+        }
 
         var buf = VerityBuf(ptr: nil, len: 0, cap: 0, backend: 0)
         let code: Int32
@@ -61,6 +76,9 @@ public final class ProverScheme: @unchecked Sendable {
     public func save(to path: String) throws {
         lock.lock()
         defer { lock.unlock() }
+        guard let handle else {
+            throw VerityError.resourceClosed("FFI handle is closed")
+        }
         let code = verity_save_prover(handle, path)
         guard code == 0 else { throw VerityError.fromCode(code) }
     }
@@ -81,6 +99,9 @@ public final class ProverScheme: @unchecked Sendable {
     public func serialize() throws -> Data {
         lock.lock()
         defer { lock.unlock() }
+        guard let handle else {
+            throw VerityError.resourceClosed("FFI handle is closed")
+        }
         var buf = VerityBuf(ptr: nil, len: 0, cap: 0, backend: 0)
         let code = verity_serialize_prover(handle, &buf)
         defer { if buf.ptr != nil { verity_free_buf(buf) } }

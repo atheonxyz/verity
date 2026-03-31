@@ -91,12 +91,17 @@ class Witness private constructor(
         @JvmStatic
         fun fromJson(json: String): Witness {
             require(json.isNotEmpty()) { "JSON string cannot be empty" }
+            val normalized = json.trim()
             try {
-                org.json.JSONObject(json)
+                require(normalized.startsWith("{")) { "witness JSON must be an object" }
+                require(normalized.endsWith("}")) { "witness JSON must be an object" }
+                JSONObject(normalized)
             } catch (e: org.json.JSONException) {
                 throw VerityException.InvalidInput("invalid witness JSON: ${e.message}")
+            } catch (e: IllegalArgumentException) {
+                throw VerityException.InvalidInput(e.message ?: "invalid witness JSON")
             }
-            return Witness(Storage.RawJson(json))
+            return Witness(Storage.RawJson(normalized))
         }
     }
 }

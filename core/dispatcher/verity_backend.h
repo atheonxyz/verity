@@ -4,7 +4,7 @@
 /// Internal header — defines the vtable that each backend must fill in.
 /// Community contributors: implement your xx_* functions and provide a vtable.
 
-#include "verity_ffi.h"
+#include "../include/verity_ffi.h"
 
 /// Raw buffer — matches PKBuf / BBBuf layout exactly (3 fields, no tag).
 /// Used internally by vtable functions; converted to VerityBuf by dispatcher.
@@ -29,6 +29,7 @@ typedef struct {
     int  (*prove_toml)(const void *prover, const char *toml_path, RawBuf *out);
     int  (*prove_json)(const void *prover, const char *inputs_json, RawBuf *out);
     int  (*verify)(const void *verifier, const uint8_t *proof_ptr, uintptr_t proof_len);
+    int  (*last_error_message)(RawBuf *out);
     void (*free_prover)(void *prover);
     void (*free_verifier)(void *verifier);
     void (*free_buf)(RawBuf buf);

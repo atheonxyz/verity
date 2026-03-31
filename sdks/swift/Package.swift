@@ -1,5 +1,45 @@
 // swift-tools-version: 5.9
+import Foundation
 import PackageDescription
+
+enum SwiftSDKMode: String {
+    case sourceOnly = "source-only"
+    case native
+}
+
+let repoRoot = URL(fileURLWithPath: #filePath)
+    .deletingLastPathComponent()
+    .deletingLastPathComponent()
+    .deletingLastPathComponent()
+let relativeXCFrameworkPath = "../../output/Verity.xcframework"
+let xcframeworkPath = repoRoot.appendingPathComponent("output/Verity.xcframework").path
+let hasNativeXCFramework = FileManager.default.fileExists(atPath: xcframeworkPath)
+let configuredMode = ProcessInfo.processInfo.environment["VERITY_SWIFT_SDK_MODE"]
+
+let swiftSDKMode: SwiftSDKMode = {
+    guard let configuredMode else {
+        return .sourceOnly
+    }
+    guard let mode = SwiftSDKMode(rawValue: configuredMode) else {
+        fatalError("Unsupported VERITY_SWIFT_SDK_MODE='\(configuredMode)'. Use 'source-only' or 'native'.")
+    }
+    return mode
+}()
+
+if swiftSDKMode == .native && !hasNativeXCFramework {
+    fatalError("VERITY_SWIFT_SDK_MODE=native requires ../../output/Verity.xcframework. Build it first with core/build/build-ios.sh.")
+}
+
+var targets: [Target] = []
+
+if swiftSDKMode == .native {
+    targets.append(
+        .binaryTarget(
+            name: "VerityFFI",
+            path: relativeXCFrameworkPath
+        )
+    )
+}
 
 let package = Package(
     name: "Verity",
@@ -7,26 +47,23 @@ let package = Package(
     products: [
         .library(name: "Verity", targets: ["Verity"]),
     ],
-    targets: [
-        // Pre-built static library containing pk_* and bb_* symbols.
-        .binaryTarget(
-            name: "VerityFFI",
-            path: "../../output/Verity.xcframework"
-        ),
-
-        // C dispatcher — routes unified verity_* calls to the correct backend
-        // via vtable. Contains pk_backend.c and bb_backend.c registrations.
-        // Uses symlink: VerityDispatch -> ../../core/dispatcher
-        // Headers via:  core/dispatcher/include -> core/include (symlink)
+    targets: targets + [
         .target(
             name: "VerityDispatch",
-            dependencies: ["VerityFFI"],
+            dependencies: swiftSDKMode == .native ? ["VerityFFI"] : [],
             path: "VerityDispatch",
-            sources: [
-                "verity_dispatch.c",
-                "backends/pk_backend.c",
-                "backends/bb_backend.c",
-            ],
+            // Native mobile builds ship ProveKit only — the Barretenberg
+            // backend requires large SRS reference data that is impractical
+            // on memory-constrained devices.  bb_backend.c is intentionally
+            // excluded; see testBarretenbergIsUnavailableInNativeMobileArtifact.
+            sources: swiftSDKMode == .native
+                ? [
+                    "verity_dispatch.c",
+                    "backends/pk_backend.c",
+                ]
+                : [
+                    "stub/verity_dispatch_stub.c",
+                ],
             publicHeadersPath: "include",
             cSettings: [
                 .headerSearchPath("include"),
@@ -38,14 +75,36 @@ let package = Package(
         .target(
             name: "Verity",
             dependencies: ["VerityDispatch"],
-            path: "Sources/Verity"
+            path: "Sources/Verity",
+            swiftSettings: [
+                .define(
+                    swiftSDKMode == .native ? "VERITY_SWIFT_NATIVE_RUNTIME" : "VERITY_SWIFT_SOURCE_ONLY_RUNTIME"
+                )
+            ]
         ),
 
         .testTarget(
-            name: "VerityTests",
+            name: "VerityUnitTests",
             dependencies: ["Verity"],
             path: "Tests/VerityTests",
-            resources: [.copy("Fixtures")]
+            exclude: [
+                "VerityNativeIntegrationTests.swift",
+                "Fixtures",
+            ],
+            sources: ["VerityUnitTests.swift"]
         ),
-    ]
+    ] + (
+        swiftSDKMode == .native
+            ? [
+                .testTarget(
+                    name: "VerityNativeIntegrationTests",
+                    dependencies: ["Verity"],
+                    path: "Tests/VerityTests",
+                    exclude: ["VerityUnitTests.swift"],
+                    sources: ["VerityNativeIntegrationTests.swift"],
+                    resources: [.copy("Fixtures")]
+                )
+            ]
+            : []
+    )
 )

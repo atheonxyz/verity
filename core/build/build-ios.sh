@@ -1,10 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# Build core libraries for iOS (device + simulator).
 #
 # Usage:
 #   bash core/build/build-ios.sh <provekit-path>
+#
+# ProveKit branch: ash/v1-ffi-sdk
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CORE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -31,36 +32,31 @@ echo "=== Building Verity core for iOS ==="
 rustup target add "$IOS_DEVICE" "$IOS_SIM" 2>/dev/null || true
 
 CARGO_PROFILE="${CARGO_PROFILE:-release-mobile}"
-echo "Using cargo profile: $CARGO_PROFILE"
+PROVEKIT_PROFILE="${PROVEKIT_PROFILE:-$CARGO_PROFILE}"
+IOS_DEPLOYMENT_TARGET="${IPHONEOS_DEPLOYMENT_TARGET:-15.0}"
+export IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
+export CMAKE_OSX_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
+export CARGO_PROFILE_RELEASE_MOBILE_DEBUG=0
+echo "Using cargo profile: $CARGO_PROFILE (core), $PROVEKIT_PROFILE (provekit)"
+echo "iOS deployment target: $IOS_DEPLOYMENT_TARGET"
+echo "release-mobile debug info: disabled"
 
 pushd "$PROVEKIT_ROOT" > /dev/null
 echo "Building provekit-ffi for $IOS_DEVICE..."
-cargo build --profile "$CARGO_PROFILE" --target "$IOS_DEVICE" -p provekit-ffi
+cargo build --profile "$PROVEKIT_PROFILE" --target "$IOS_DEVICE" -p provekit-ffi
 echo "Building provekit-ffi for $IOS_SIM..."
-cargo build --profile "$CARGO_PROFILE" --target "$IOS_SIM" -p provekit-ffi
+cargo build --profile "$PROVEKIT_PROFILE" --target "$IOS_SIM" -p provekit-ffi
 popd > /dev/null
 
-pushd "$CORE_DIR" > /dev/null
-echo "Building core backends for $IOS_DEVICE..."
-cargo build --profile "$CARGO_PROFILE" --target "$IOS_DEVICE"
-echo "Building core backends for $IOS_SIM..."
-cargo build --profile "$CARGO_PROFILE" --target "$IOS_SIM"
-popd > /dev/null
-
-echo "Merging static libraries..."
+echo "Preparing static libraries..."
 MERGED_DIR=$(mktemp -d)
 mkdir -p "$MERGED_DIR/ios-arm64" "$MERGED_DIR/ios-arm64-sim"
 
-ZK_FFI_LIBS_DEVICE=$(find "$CORE_DIR/target/$IOS_DEVICE/$CARGO_PROFILE" -maxdepth 1 -name "lib*.a" -type f)
-ZK_FFI_LIBS_SIM=$(find "$CORE_DIR/target/$IOS_SIM/$CARGO_PROFILE" -maxdepth 1 -name "lib*.a" -type f)
+cp "$PROVEKIT_ROOT/target/$IOS_DEVICE/$PROVEKIT_PROFILE/libprovekit_ffi.a" \
+   "$MERGED_DIR/ios-arm64/libverity.a"
 
-libtool -static -o "$MERGED_DIR/ios-arm64/libverity.a" \
-    "$PROVEKIT_ROOT/target/$IOS_DEVICE/$CARGO_PROFILE/libprovekit_ffi.a" \
-    $ZK_FFI_LIBS_DEVICE
-
-libtool -static -o "$MERGED_DIR/ios-arm64-sim/libverity.a" \
-    "$PROVEKIT_ROOT/target/$IOS_SIM/$CARGO_PROFILE/libprovekit_ffi.a" \
-    $ZK_FFI_LIBS_SIM
+cp "$PROVEKIT_ROOT/target/$IOS_SIM/$PROVEKIT_PROFILE/libprovekit_ffi.a" \
+   "$MERGED_DIR/ios-arm64-sim/libverity.a"
 
 # Strip debug symbols to reduce library size
 echo "Stripping debug symbols..."
