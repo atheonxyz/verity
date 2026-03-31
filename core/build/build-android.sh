@@ -6,7 +6,7 @@ set -euo pipefail
 #   bash core/build/build-android.sh <provekit-path>
 #   bash core/build/build-android.sh ../provekit
 #
-# ProveKit branch: ash/v1-ffi-sdk
+# ProveKit branch: v1
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CORE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"

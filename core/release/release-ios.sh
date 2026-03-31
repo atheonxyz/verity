@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Prepare a Verity.xcframework release (zip + checksum + copy-pasteable gh command).
+# Create a Verity.xcframework GitHub release (zip + checksum + upload).
 #
 # Usage:
 #   bash core/release/release-ios.sh          # reads VERSION file
@@ -37,21 +37,23 @@ CHECKSUM=$(swift package compute-checksum "$ZIP")
 echo "Checksum: $CHECKSUM"
 
 REPO_URL=$(cd "$REPO_DIR" && gh repo view --json url -q .url 2>/dev/null || echo "https://github.com/atheonxyz/verity")
+
+echo "Creating GitHub release $VERSION..."
+gh release create "$VERSION" "$ZIP" \
+    --title "$VERSION" \
+    --notes "Pre-built Verity xcframework with all backends"
+
 DOWNLOAD_URL="$REPO_URL/releases/download/$VERSION/Verity.xcframework.zip"
 
 echo ""
-echo "=== Ready to release $VERSION ==="
+echo "=== Done! ==="
 echo ""
-echo "1. Create the GitHub release (copy & run):"
-echo ""
-echo "  gh release create $VERSION $ZIP \\"
-echo "      --title \"$VERSION\" \\"
-echo "      --notes \"Pre-built Verity xcframework with all backends\""
-echo ""
-echo "2. Then update sdks/swift/Package.swift with:"
+echo "Update sdks/swift/Package.swift with:"
 echo ""
 echo "  .binaryTarget("
 echo "      name: \"VerityFFI\","
 echo "      url: \"$DOWNLOAD_URL\","
 echo "      checksum: \"$CHECKSUM\""
 echo "  )"
+
+rm -f "$ZIP"

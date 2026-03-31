@@ -5,7 +5,7 @@ set -euo pipefail
 # Usage:
 #   bash core/build/build-ios.sh <provekit-path>
 #
-# ProveKit branch: ash/v1-ffi-sdk
+# ProveKit branch: v1
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CORE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"

@@ -27,6 +27,12 @@ rustup target add wasm32-unknown-unknown
 All iOS and Android builds require a sibling ProveKit checkout:
 
 ```bash
+# One-time setup: clone ProveKit
+git clone https://github.com/worldfnd/provekit ../provekit
+cd ../provekit && git checkout v1 && cd -
+```
+
+```bash
 # iOS (device + simulator xcframework)
 make core-ios PROVEKIT_PATH=../provekit
 
