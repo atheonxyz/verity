@@ -52,16 +52,22 @@ class Verity(private val backend: Backend) {
         require(path.isNotEmpty()) { "circuit path cannot be empty" }
         try {
             val handles = nativePrepare(backend.code, path)
-            val prover = ProverScheme(handles[0])
+            val prover: ProverScheme
+            val verifier: VerifierScheme
             try {
-                return PreparedScheme(
-                    prover = prover,
-                    verifier = VerifierScheme(handles[1]),
-                )
+                prover = ProverScheme(handles[0])
             } catch (e: Throwable) {
-                prover.close()
+                freeProver(handles[0])
                 throw e
             }
+            try {
+                verifier = VerifierScheme(handles[1])
+            } catch (e: Throwable) {
+                prover.close()
+                freeVerifier(handles[1])
+                throw e
+            }
+            return PreparedScheme(prover = prover, verifier = verifier)
         } finally {
             if (isTemporary) java.io.File(path).delete()
         }
