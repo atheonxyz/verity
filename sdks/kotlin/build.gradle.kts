@@ -7,7 +7,7 @@ plugins {
 val publishedAbis = listOf("arm64-v8a")
 
 android {
-    namespace = "com.atheon.verity"
+    namespace = "xyz.atheon.verity"
     compileSdk = 34
 
     defaultConfig {
@@ -61,7 +61,7 @@ dependencies {
 publishing {
     publications {
         create<MavenPublication>("release") {
-            groupId = "com.atheon"
+            groupId = "xyz.atheon"
             artifactId = "verity"
             version = file("../../VERSION").readText().trim()
 

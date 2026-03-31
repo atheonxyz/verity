@@ -1,4 +1,4 @@
-package com.atheon.verity
+package xyz.atheon.verity
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -190,7 +190,6 @@ class Verity(private val backend: Backend) {
             if (!libraryLoaded) {
                 synchronized(Companion) {
                     if (!libraryLoaded) {
-                        System.loadLibrary("provekit_ffi")
                         System.loadLibrary("verity_jni")
                         // Set HOME for backends that need writable dirs (e.g., Barretenberg SRS).
                         val tmpDir = System.getProperty("java.io.tmpdir") ?: "/data/local/tmp"
@@ -226,13 +225,20 @@ class Verity(private val backend: Backend) {
         private external fun nativePrepare(backend: Int, circuitPath: String): LongArray
 
         @JvmStatic
-        internal external fun nativeProveToml(proverHandle: Long, inputPath: String): ByteArray
+        private external fun nativeProveToml(proverHandle: Long, inputPath: String): ByteArray
 
         @JvmStatic
-        internal external fun nativeProveJson(proverHandle: Long, inputsJson: String): ByteArray
+        private external fun nativeProveJson(proverHandle: Long, inputsJson: String): ByteArray
 
         @JvmStatic
-        internal external fun nativeVerify(verifierHandle: Long, proof: ByteArray): Int
+        private external fun nativeVerify(verifierHandle: Long, proof: ByteArray): Int
+
+        @JvmStatic
+        internal fun proveToml(handle: Long, inputPath: String): ByteArray = nativeProveToml(handle, inputPath)
+        @JvmStatic
+        internal fun proveJson(handle: Long, inputsJson: String): ByteArray = nativeProveJson(handle, inputsJson)
+        @JvmStatic
+        internal fun verify(handle: Long, proof: ByteArray): Int = nativeVerify(handle, proof)
 
         @JvmStatic
         private external fun nativeLoadProver(backend: Int, path: String): Long

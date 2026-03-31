@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.atheon.veritydemo"
+    namespace = "xyz.atheon.veritydemo"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.atheon.veritydemo"
+        applicationId = "xyz.atheon.veritydemo"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -34,7 +34,7 @@ android {
 }
 
 dependencies {
-    // For standalone use: implementation("com.atheon:verity:0.2.0")
+    // For standalone use: implementation("xyz.atheon:verity:0.2.0")
     implementation(project(":verity"))
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")

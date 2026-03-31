@@ -1,4 +1,4 @@
-package com.atheon.verity
+package xyz.atheon.verity
 
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
@@ -39,10 +39,10 @@ class ProverScheme internal constructor(private var handle: Long) : AutoCloseabl
         when (val resolved = witness.resolve()) {
             is Witness.Resolved.TomlPath -> {
                 require(resolved.path.isNotEmpty()) { "input path cannot be empty" }
-                Proof(Verity.nativeProveToml(handle, resolved.path))
+                Proof(Verity.proveToml(handle, resolved.path))
             }
             is Witness.Resolved.Json -> {
-                Proof(Verity.nativeProveJson(handle, resolved.json))
+                Proof(Verity.proveJson(handle, resolved.json))
             }
         }
     }

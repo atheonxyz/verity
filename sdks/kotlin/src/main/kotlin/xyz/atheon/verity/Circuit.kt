@@ -1,4 +1,4 @@
-package com.atheon.verity
+package xyz.atheon.verity
 
 import java.io.File
 

@@ -19,7 +19,7 @@ SDK_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$SDK_DIR/../.." && pwd)"
 
 VERSION="${1:-$(cat "$REPO_DIR/VERSION" | tr -d '[:space:]')}"
-echo "Publishing com.atheon:verity:$VERSION to Maven Central"
+echo "Publishing xyz.atheon:verity:$VERSION to Maven Central"
 
 # Validate environment
 for var in GPG_SIGNING_KEY GPG_PASSPHRASE SONATYPE_USERNAME SONATYPE_PASSWORD; do
@@ -48,4 +48,4 @@ cd "$SDK_DIR"
     -PsonatypeUsername="$SONATYPE_USERNAME" \
     -PsonatypePassword="$SONATYPE_PASSWORD"
 
-echo "Published com.atheon:verity:$VERSION"
+echo "Published xyz.atheon:verity:$VERSION"

@@ -1,0 +1,156 @@
+#!/bin/bash
+set -euo pipefail
+
+# Build libverity_jni.so for Android (arm64-v8a + x86_64).
+#
+# Prerequisites:
+#   1. Run core/build/build-android.sh first to compile the Rust crates.
+#   2. Android NDK must be installed (set ANDROID_NDK_HOME or let auto-detect).
+#
+# Usage:
+#   bash sdks/kotlin/scripts/build-android.sh
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SDK_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_DIR="$(cd "$SDK_DIR/../.." && pwd)"
+PROVEKIT_ROOT="${PROVEKIT_ROOT:-$(cd "$REPO_DIR/../provekit" 2>/dev/null && pwd || echo "")}"
+CORE_DIR="$REPO_DIR/core"
+DISPATCHER_DIR="$CORE_DIR/dispatcher"
+INCLUDE_DIR="$CORE_DIR/include"
+JNI_DIR="$SDK_DIR/src/main/jni"
+OUTPUT_DIR="$SDK_DIR/src/main/jniLibs"
+CARGO_PROFILE="${CARGO_PROFILE:-release}"
+
+# Android NDK — auto-detect or use env var
+if [ -z "${ANDROID_NDK_HOME:-}" ]; then
+    if [ -d "$HOME/Library/Android/sdk/ndk" ]; then
+        ANDROID_NDK_HOME="$(ls -d "$HOME/Library/Android/sdk/ndk/"* 2>/dev/null | sort -V | tail -1)"
+    elif [ -n "${ANDROID_HOME:-}" ] && [ -d "$ANDROID_HOME/ndk" ]; then
+        ANDROID_NDK_HOME="$(ls -d "$ANDROID_HOME/ndk/"* 2>/dev/null | sort -V | tail -1)"
+    fi
+fi
+
+if [ -z "${ANDROID_NDK_HOME:-}" ] || [ ! -d "$ANDROID_NDK_HOME" ]; then
+    echo "ERROR: Cannot find Android NDK. Set ANDROID_NDK_HOME."
+    exit 1
+fi
+
+if [ ! -f "$JNI_DIR/verity_jni.c" ]; then
+    echo "ERROR: Cannot find JNI bridge at $JNI_DIR/verity_jni.c"
+    exit 1
+fi
+
+if [ ! -f "$DISPATCHER_DIR/verity_dispatch.c" ]; then
+    echo "ERROR: Cannot find dispatch layer at $DISPATCHER_DIR/"
+    exit 1
+fi
+
+echo "=== Building libverity_jni.so for Android ==="
+echo "SDK dir:       $SDK_DIR"
+echo "Core dir:      $CORE_DIR"
+echo "NDK:           $ANDROID_NDK_HOME"
+echo "Cargo profile: $CARGO_PROFILE"
+if [ -n "$PROVEKIT_ROOT" ]; then
+    echo "ProveKit root: $PROVEKIT_ROOT"
+fi
+echo ""
+
+# NDK toolchain
+TOOLCHAIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
+if [ ! -d "$TOOLCHAIN" ]; then
+    TOOLCHAIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/darwin-x86_64"
+fi
+export PATH="$TOOLCHAIN/bin:$PATH"
+
+API_LEVEL=24
+
+TARGETS=(
+    "aarch64-linux-android:arm64-v8a"
+    "x86_64-linux-android:x86_64"
+)
+
+for entry in "${TARGETS[@]}"; do
+    RUST_TARGET="${entry%%:*}"
+    ABI="${entry##*:}"
+
+    echo "--- Building for $RUST_TARGET ($ABI) ---"
+
+    case "$RUST_TARGET" in
+        aarch64-linux-android) CC_PREFIX="aarch64-linux-android${API_LEVEL}" ;;
+        x86_64-linux-android)  CC_PREFIX="x86_64-linux-android${API_LEVEL}" ;;
+    esac
+
+    CC="${TOOLCHAIN}/bin/${CC_PREFIX}-clang"
+    AR="${TOOLCHAIN}/bin/llvm-ar"
+
+    # Find static libraries from core build
+    CORE_TARGET_DIR="$CORE_DIR/target/$RUST_TARGET/$CARGO_PROFILE"
+    PK_TARGET_DIR="${PROVEKIT_ROOT:+$PROVEKIT_ROOT/target/$RUST_TARGET/$CARGO_PROFILE}"
+
+    if [ ! -d "$CORE_TARGET_DIR" ]; then
+        echo "  WARNING: Core target dir not found: $CORE_TARGET_DIR"
+        echo "  Run 'CARGO_PROFILE=$CARGO_PROFILE bash core/build/build-android.sh <provekit-path>' first."
+        continue
+    fi
+
+    WORK_DIR=$(mktemp -d)
+
+    # Compile dispatch layer
+    echo "  Compiling dispatch layer..."
+    "$CC" -c -I"$INCLUDE_DIR" -I"$DISPATCHER_DIR" -fPIC \
+        "$DISPATCHER_DIR/verity_dispatch.c" -o "$WORK_DIR/verity_dispatch.o"
+
+    "$CC" -c -I"$INCLUDE_DIR" -I"$DISPATCHER_DIR" -fPIC \
+        "$DISPATCHER_DIR/backends/pk_backend.c" -o "$WORK_DIR/pk_backend.o"
+
+    "$CC" -c -I"$INCLUDE_DIR" -I"$DISPATCHER_DIR" -fPIC \
+        "$DISPATCHER_DIR/backends/bb_backend.c" -o "$WORK_DIR/bb_backend.o"
+
+    # Compile JNI bridge
+    echo "  Compiling JNI bridge..."
+    "$CC" -c -I"$INCLUDE_DIR" -fPIC \
+        "$JNI_DIR/verity_jni.c" -o "$WORK_DIR/verity_jni.o"
+
+    # Collect static libraries to link
+    LINK_LIBS=""
+
+    # ProveKit FFI
+    if [ -n "$PK_TARGET_DIR" ] && [ -f "$PK_TARGET_DIR/libprovekit_ffi.a" ]; then
+        LINK_LIBS="$LINK_LIBS -Wl,--whole-archive $PK_TARGET_DIR/libprovekit_ffi.a -Wl,--no-whole-archive"
+    fi
+
+    # Core backends (barretenberg, etc.)
+    for lib in "$CORE_TARGET_DIR"/lib*.a; do
+        [ -f "$lib" ] && LINK_LIBS="$LINK_LIBS $lib"
+    done
+
+    # Dependent static libs from build directories (lzma, zstd, blake3, barretenberg)
+    for build_dir in "$PK_TARGET_DIR/build" "$CORE_TARGET_DIR/build"; do
+        if [ -d "$build_dir" ]; then
+            for lib in $(find "$build_dir" -name "lib*.a" 2>/dev/null); do
+                LINK_LIBS="$LINK_LIBS $lib"
+            done
+        fi
+    done
+
+    # Link into shared library
+    echo "  Linking libverity_jni.so..."
+    mkdir -p "$OUTPUT_DIR/$ABI"
+    "$CC" -shared \
+        -o "$OUTPUT_DIR/$ABI/libverity_jni.so" \
+        -Wl,--allow-multiple-definition \
+        "$WORK_DIR/verity_dispatch.o" \
+        "$WORK_DIR/pk_backend.o" \
+        "$WORK_DIR/bb_backend.o" \
+        "$WORK_DIR/verity_jni.o" \
+        $LINK_LIBS \
+        -llog -lm -lc -lc++_static -lc++abi
+
+    rm -rf "$WORK_DIR"
+    echo "  -> $OUTPUT_DIR/$ABI/libverity_jni.so"
+    echo ""
+done
+
+echo "=== Done! ==="
+echo "Native libraries are in: $OUTPUT_DIR"
+ls -lh "$OUTPUT_DIR"/*/libverity_jni.so 2>/dev/null || echo "No .so files found — check build output above."
