@@ -40,6 +40,7 @@ jobs:
     uses: ./.github/workflows/core-build.yml
     with:
       targets: "ios"
+      provekit-ref: "v1"
 
   test:
     needs: build-and-test

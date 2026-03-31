@@ -13,6 +13,11 @@ on:
         required: false
         default: "nightly"
         type: string
+      provekit-ref:
+        description: "ProveKit git ref (branch, tag, or SHA)"
+        required: false
+        default: "v1"
+        type: string
 
 jobs:
   build-ios:
@@ -20,6 +25,11 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: worldfnd/provekit
+          ref: ${{ inputs.provekit-ref }}
+          path: provekit
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
@@ -28,12 +38,13 @@ jobs:
         with:
           path: |
             core/target
+            provekit/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: rust-ios-${{ inputs.rust-toolchain }}-${{ hashFiles('core/Cargo.lock') }}
+          key: rust-ios-${{ inputs.rust-toolchain }}-${{ hashFiles('core/Cargo.lock') }}-${{ inputs.provekit-ref }}
           restore-keys: rust-ios-${{ inputs.rust-toolchain }}-
       - name: Build iOS
-        run: bash core/build/build-ios.sh
+        run: bash core/build/build-ios.sh provekit
       - name: Record artifact sizes
         run: |
           echo "## iOS Artifact Sizes" >> $GITHUB_STEP_SUMMARY
@@ -52,6 +63,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: worldfnd/provekit
+          ref: ${{ inputs.provekit-ref }}
+          path: provekit
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
@@ -60,12 +76,13 @@ jobs:
         with:
           path: |
             core/target
+            provekit/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: rust-android-${{ inputs.rust-toolchain }}-${{ hashFiles('core/Cargo.lock') }}
+          key: rust-android-${{ inputs.rust-toolchain }}-${{ hashFiles('core/Cargo.lock') }}-${{ inputs.provekit-ref }}
           restore-keys: rust-android-${{ inputs.rust-toolchain }}-
       - name: Build Android
-        run: bash core/build/build-android.sh
+        run: bash core/build/build-android.sh provekit
       - name: Record artifact sizes
         run: |
           echo "## Android Artifact Sizes" >> $GITHUB_STEP_SUMMARY
