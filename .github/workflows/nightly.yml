@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        toolchain: [stable, nightly]
+        toolchain: [nightly-2026-03-04]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +31,8 @@ jobs:
     uses: ./.github/workflows/core-build.yml
     with:
       targets: "ios,android,wasm,native"
-      provekit-ref: "v1"
+      rust-toolchain: "nightly-2026-03-04"
+      provekit-ref: "ash/v1-improve"
 
   test-swift:
     needs: core-build

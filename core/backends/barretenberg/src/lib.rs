@@ -890,6 +890,12 @@ pub unsafe extern "C" fn bb_free_buf(buf: BBBuf) {
     }
 }
 
+/// Get the error message from the most recent failing FFI call.
+///
+/// # Safety
+///
+/// - `out` must be a valid, non-null pointer to a `BBBuf`.
+/// - The returned buffer must be freed via `bb_free_buf`.
 #[no_mangle]
 pub unsafe extern "C" fn bb_last_error_message(out: *mut BBBuf) -> c_int {
     if out.is_null() {

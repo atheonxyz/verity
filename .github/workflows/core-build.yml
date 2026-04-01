@@ -11,12 +11,12 @@ on:
       rust-toolchain:
         description: "Rust toolchain to use"
         required: false
-        default: "nightly"
+        default: "nightly-2026-03-04"
         type: string
       provekit-ref:
         description: "ProveKit git ref (branch, tag, or SHA)"
         required: false
-        default: "v1"
+        default: "ash/v1-improve"
         type: string
 
 jobs:
