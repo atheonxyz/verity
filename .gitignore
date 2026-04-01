@@ -36,6 +36,5 @@ target/
 .omc/
 docs/superpowers/
 
-# Examples (Xcode projects are generated)
-examples/ios/BasicProof/*.xcodeproj/
-examples/ios/Showcase/*.xcodeproj/
+# Examples (Xcode projects are generated from project.yml via xcodegen)
+examples/ios/**/*.xcodeproj/
