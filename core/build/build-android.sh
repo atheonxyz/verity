@@ -114,6 +114,9 @@ for entry in "${TARGETS[@]}"; do
     rustup target add "$RUST_TARGET" 2>/dev/null || true
 done
 
+# Clean previous output to avoid stale artifacts from different backend selections
+rm -rf "$OUTPUT_DIR"
+
 for entry in "${TARGETS[@]}"; do
     RUST_TARGET="${entry%%:*}"
     ABI="${entry##*:}"

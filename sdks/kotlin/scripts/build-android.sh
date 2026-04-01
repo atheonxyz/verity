@@ -95,43 +95,60 @@ for entry in "${TARGETS[@]}"; do
 
     WORK_DIR=$(mktemp -d)
 
+    # Detect which backends were built
+    ANDROID_OUTPUT_DIR="$REPO_DIR/output/android/$ABI"
+    HAS_PK=false
+    HAS_BB=false
+    [ -f "$ANDROID_OUTPUT_DIR/libprovekit_ffi.a" ] && HAS_PK=true
+    [ -f "$ANDROID_OUTPUT_DIR/libbarretenberg_ffi.a" ] && HAS_BB=true
+    echo "  Backends detected: pk=$HAS_PK, bb=$HAS_BB"
+
     # Compile dispatch layer
     echo "  Compiling dispatch layer..."
     "$CC" -c -I"$INCLUDE_DIR" -I"$DISPATCHER_DIR" -fPIC \
         "$DISPATCHER_DIR/verity_dispatch.c" -o "$WORK_DIR/verity_dispatch.o"
 
-    "$CC" -c -I"$INCLUDE_DIR" -I"$DISPATCHER_DIR" -fPIC \
-        "$DISPATCHER_DIR/backends/pk_backend.c" -o "$WORK_DIR/pk_backend.o"
-
-    "$CC" -c -I"$INCLUDE_DIR" -I"$DISPATCHER_DIR" -fPIC \
-        "$DISPATCHER_DIR/backends/bb_backend.c" -o "$WORK_DIR/bb_backend.o"
+    BACKEND_OBJS=""
+    if $HAS_PK; then
+        "$CC" -c -I"$INCLUDE_DIR" -I"$DISPATCHER_DIR" -fPIC \
+            "$DISPATCHER_DIR/backends/pk_backend.c" -o "$WORK_DIR/pk_backend.o"
+        BACKEND_OBJS="$BACKEND_OBJS $WORK_DIR/pk_backend.o"
+    fi
+    if $HAS_BB; then
+        "$CC" -c -I"$INCLUDE_DIR" -I"$DISPATCHER_DIR" -fPIC \
+            "$DISPATCHER_DIR/backends/bb_backend.c" -o "$WORK_DIR/bb_backend.o"
+        BACKEND_OBJS="$BACKEND_OBJS $WORK_DIR/bb_backend.o"
+    fi
 
     # Compile JNI bridge
     echo "  Compiling JNI bridge..."
     "$CC" -c -I"$INCLUDE_DIR" -fPIC \
         "$JNI_DIR/verity_jni.c" -o "$WORK_DIR/verity_jni.o"
 
-    # Collect static libraries to link
+    # Collect static libraries from output/android/<ABI>/ (populated by build-android.sh)
+    ANDROID_OUTPUT_DIR="$REPO_DIR/output/android/$ABI"
     LINK_LIBS=""
 
-    # ProveKit FFI
-    if [ -n "$PK_TARGET_DIR" ] && [ -f "$PK_TARGET_DIR/libprovekit_ffi.a" ]; then
-        LINK_LIBS="$LINK_LIBS -Wl,--whole-archive $PK_TARGET_DIR/libprovekit_ffi.a -Wl,--no-whole-archive"
+    if [ -d "$ANDROID_OUTPUT_DIR" ]; then
+        for lib in "$ANDROID_OUTPUT_DIR"/lib*.a; do
+            [ -f "$lib" ] || continue
+            # Use --whole-archive for FFI crates to ensure constructor registration symbols are kept
+            LINK_LIBS="$LINK_LIBS -Wl,--whole-archive $lib -Wl,--no-whole-archive"
+        done
     fi
 
-    # Core backends (barretenberg, etc.)
-    for lib in "$CORE_TARGET_DIR"/lib*.a; do
-        [ -f "$lib" ] && LINK_LIBS="$LINK_LIBS $lib"
-    done
+    # Dependent static libs from provekit build directory (lzma, zstd, blake3, ring)
+    if [ -n "$PK_TARGET_DIR" ] && [ -d "$PK_TARGET_DIR/build" ]; then
+        for lib in $(find "$PK_TARGET_DIR/build" -name "lib*.a" 2>/dev/null); do
+            LINK_LIBS="$LINK_LIBS $lib"
+        done
+    fi
 
-    # Dependent static libs from build directories (lzma, zstd, blake3, barretenberg)
-    for build_dir in "$PK_TARGET_DIR/build" "$CORE_TARGET_DIR/build"; do
-        if [ -d "$build_dir" ]; then
-            for lib in $(find "$build_dir" -name "lib*.a" 2>/dev/null); do
-                LINK_LIBS="$LINK_LIBS $lib"
-            done
-        fi
-    done
+    if [ -z "$LINK_LIBS" ]; then
+        echo "  WARNING: No static libraries found in $ANDROID_OUTPUT_DIR"
+        echo "  Run 'make core-android PROVEKIT_PATH=../provekit' first."
+        continue
+    fi
 
     # Link into shared library
     echo "  Linking libverity_jni.so..."
@@ -144,8 +161,7 @@ for entry in "${TARGETS[@]}"; do
         -o "$OUTPUT_DIR/$ABI/libverity_jni.so" \
         -Wl,--allow-multiple-definition \
         "$WORK_DIR/verity_dispatch.o" \
-        "$WORK_DIR/pk_backend.o" \
-        "$WORK_DIR/bb_backend.o" \
+        $BACKEND_OBJS \
         "$WORK_DIR/verity_jni.o" \
         $LINK_LIBS \
         -llog -lm -lc -lc++_static -lc++abi
