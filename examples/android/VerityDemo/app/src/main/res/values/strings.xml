@@ -9,6 +9,7 @@
     <string name="status_preparing">Preparing circuit\u2026</string>
     <string name="status_proving">Generating proof\u2026</string>
     <string name="status_verifying">Verifying proof\u2026</string>
+    <string name="label_precompiled">Use Precompiled Schemes</string>
     <string name="label_proof">Proof</string>
     <string name="label_result">Result</string>
     <string name="label_timing">Timing</string>

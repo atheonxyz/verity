@@ -16,6 +16,13 @@ let xcframeworkPath = repoRoot.appendingPathComponent("output/Verity.xcframework
 let hasNativeXCFramework = FileManager.default.fileExists(atPath: xcframeworkPath)
 let configuredMode = ProcessInfo.processInfo.environment["VERITY_SWIFT_SDK_MODE"]
 
+// Read which backends were built into the xcframework (written by build-ios.sh)
+let backendsMarkerPath = repoRoot.appendingPathComponent("output/Verity.xcframework/backends").path
+let builtBackends: String = (try? String(contentsOfFile: backendsMarkerPath, encoding: .utf8))?
+    .trimmingCharacters(in: .whitespacesAndNewlines) ?? "provekit"
+let hasPK = builtBackends == "provekit" || builtBackends == "all"
+let hasBB = builtBackends == "bb" || builtBackends == "all"
+
 let swiftSDKMode: SwiftSDKMode = {
     guard let configuredMode else {
         return .sourceOnly
@@ -52,15 +59,15 @@ let package = Package(
             name: "VerityDispatch",
             dependencies: swiftSDKMode == .native ? ["VerityFFI"] : [],
             path: "VerityDispatch",
-            // Native mobile builds ship ProveKit only — the Barretenberg
-            // backend requires large SRS reference data that is impractical
-            // on memory-constrained devices.  bb_backend.c is intentionally
-            // excluded; see testBarretenbergIsUnavailableInNativeMobileArtifact.
+            // Which backend .c files to compile depends on what was built into
+            // the xcframework (detected from output/Verity.xcframework/backends marker).
             sources: swiftSDKMode == .native
-                ? [
-                    "verity_dispatch.c",
-                    "backends/pk_backend.c",
-                ]
+                ? {
+                    var srcs = ["verity_dispatch.c"]
+                    if hasPK { srcs.append("backends/pk_backend.c") }
+                    if hasBB { srcs.append("backends/bb_backend.c") }
+                    return srcs
+                }()
                 : [
                     "stub/verity_dispatch_stub.c",
                 ],

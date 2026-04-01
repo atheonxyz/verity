@@ -4,10 +4,13 @@ set -euo pipefail
 # Build core libraries for Android (arm64-v8a + x86_64).
 #
 # Usage:
-#   bash core/build/build-android.sh <provekit-path>
-#   bash core/build/build-android.sh ../provekit
+#   bash core/build/build-android.sh <provekit-path> [--backends provekit|bb|all]
 #
-# ProveKit branch: v1
+# Examples:
+#   bash core/build/build-android.sh ../provekit                     # All backends (default)
+#   bash core/build/build-android.sh ../provekit --backends provekit  # ProveKit only
+#   bash core/build/build-android.sh ../provekit --backends bb        # Barretenberg only
+#   bash core/build/build-android.sh ../provekit --backends all       # Both
 #
 # Environment:
 #   ANDROID_NDK_HOME  — path to Android NDK (auto-detected if not set)
@@ -18,20 +21,51 @@ CORE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$CORE_DIR/.." && pwd)"
 OUTPUT_DIR="$REPO_DIR/output/android"
 
-if [ $# -lt 1 ]; then
-    echo "Usage: bash core/build/build-android.sh <provekit-path>"
+# Parse arguments
+PROVEKIT_ROOT=""
+BACKENDS="all"
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --backends)
+            BACKENDS="$2"
+            shift 2
+            ;;
+        *)
+            if [ -z "$PROVEKIT_ROOT" ]; then
+                PROVEKIT_ROOT="$(cd "$1" && pwd)"
+            else
+                echo "ERROR: Unknown argument '$1'"
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$PROVEKIT_ROOT" ]; then
+    echo "Usage: bash core/build/build-android.sh <provekit-path> [--backends provekit|bb|all]"
     exit 1
 fi
-
-PROVEKIT_ROOT="$(cd "$1" && pwd)"
 
 if [ ! -f "$PROVEKIT_ROOT/Cargo.toml" ]; then
     echo "ERROR: Cannot find provekit repo at $PROVEKIT_ROOT"
     exit 1
 fi
 
-# Default changed from release-mobile to release: the old custom profile only
-# differed by setting debug=0, which the standard release profile already does.
+# Resolve backend flags
+BUILD_PK=false
+BUILD_BB=false
+case "$BACKENDS" in
+    provekit) BUILD_PK=true ;;
+    bb)       BUILD_BB=true ;;
+    all)      BUILD_PK=true; BUILD_BB=true ;;
+    *)
+        echo "ERROR: Invalid --backends value '$BACKENDS'. Use provekit, bb, or all."
+        exit 1
+        ;;
+esac
+
 CARGO_PROFILE="${CARGO_PROFILE:-release}"
 
 # -- Android NDK detection --
@@ -56,11 +90,17 @@ fi
 
 API_LEVEL=24
 
+PROVEKIT_BRANCH=$(git -C "$PROVEKIT_ROOT" rev-parse --abbrev-ref HEAD)
+VERITY_BRANCH=$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD)
+
 echo "=== Building Verity core for Android ==="
-echo "Core dir:      $CORE_DIR"
-echo "ProveKit root: $PROVEKIT_ROOT"
-echo "NDK:           $ANDROID_NDK_HOME"
-echo "Cargo profile: $CARGO_PROFILE"
+echo "Core dir:         $CORE_DIR"
+echo "ProveKit root:    $PROVEKIT_ROOT"
+echo "ProveKit branch:  $PROVEKIT_BRANCH ($(git -C "$PROVEKIT_ROOT" rev-parse --short HEAD))"
+echo "Verity branch:    $VERITY_BRANCH ($(git -C "$REPO_DIR" rev-parse --short HEAD))"
+echo "Backends:         $BACKENDS (pk=$BUILD_PK, bb=$BUILD_BB)"
+echo "NDK:              $ANDROID_NDK_HOME"
+echo "Cargo profile:    $CARGO_PROFILE"
 echo ""
 
 TARGETS=(
@@ -89,7 +129,6 @@ for entry in "${TARGETS[@]}"; do
     NDK_CC="${TOOLCHAIN}/bin/${CC_PREFIX}-clang"
     NDK_AR="${TOOLCHAIN}/bin/llvm-ar"
 
-    # Cargo uses UPPER_UNDERSCORE for linker; cc-rs crate checks lowercase underscore forms
     RUST_TARGET_UPPER="$(echo "${RUST_TARGET//-/_}" | tr '[:lower:]' '[:upper:]')"
     RUST_TARGET_LOWER="$(echo "${RUST_TARGET//-/_}")"
     export "CC_${RUST_TARGET_UPPER}=$NDK_CC"
@@ -97,31 +136,38 @@ for entry in "${TARGETS[@]}"; do
     export "CARGO_TARGET_${RUST_TARGET_UPPER}_LINKER=$NDK_CC"
     export "CC_${RUST_TARGET_LOWER}=$NDK_CC"
     export "AR_${RUST_TARGET_LOWER}=$NDK_AR"
-    # Do NOT set global CC/AR — it breaks host build-script compilation (e.g. ring crate)
     unset CC AR 2>/dev/null || true
 
-    # Build provekit-ffi
-    pushd "$PROVEKIT_ROOT" > /dev/null
-    echo "  Building provekit-ffi..."
-    cargo build --profile "$CARGO_PROFILE" --target "$RUST_TARGET" -p provekit-ffi
-    popd > /dev/null
+    # Build ProveKit FFI
+    if $BUILD_PK; then
+        pushd "$PROVEKIT_ROOT" > /dev/null
+        echo "  Building provekit-ffi..."
+        cargo build --profile "$CARGO_PROFILE" --target "$RUST_TARGET" -p provekit-ffi
+        popd > /dev/null
+    fi
 
-    # Build core backends
-    pushd "$CORE_DIR" > /dev/null
-    echo "  Building core backends..."
-    cargo build --profile "$CARGO_PROFILE" --target "$RUST_TARGET"
-    popd > /dev/null
+    # Build Barretenberg FFI
+    if $BUILD_BB; then
+        pushd "$CORE_DIR" > /dev/null
+        echo "  Building barretenberg-ffi..."
+        cargo build --profile "$CARGO_PROFILE" --target "$RUST_TARGET" -p barretenberg-ffi
+        popd > /dev/null
+    fi
 
     # Collect outputs
     mkdir -p "$OUTPUT_DIR/$ABI"
 
-    find "$PROVEKIT_ROOT/target/$RUST_TARGET/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/$ABI/" \;
-    find "$CORE_DIR/target/$RUST_TARGET/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/$ABI/" \;
+    if $BUILD_PK; then
+        find "$PROVEKIT_ROOT/target/$RUST_TARGET/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/$ABI/" \;
+    fi
+    if $BUILD_BB; then
+        find "$CORE_DIR/target/$RUST_TARGET/$CARGO_PROFILE" -maxdepth 1 \( -name "*.so" -o -name "lib*.a" \) -exec cp {} "$OUTPUT_DIR/$ABI/" \;
+    fi
 
     echo "  -> $OUTPUT_DIR/$ABI/"
     echo ""
 done
 
-echo "=== Done: $OUTPUT_DIR ==="
+echo "=== Done: $OUTPUT_DIR (backends: $BACKENDS) ==="
 echo ""
 echo "Next step: run sdks/kotlin/scripts/build-android.sh to compile JNI bridge + link libverity_jni.so"
