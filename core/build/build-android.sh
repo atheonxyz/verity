@@ -23,7 +23,7 @@ OUTPUT_DIR="$REPO_DIR/output/android"
 
 # Parse arguments
 PROVEKIT_ROOT=""
-BACKENDS="all"
+BACKENDS="provekit"
 
 while [ $# -gt 0 ]; do
     case "$1" in
