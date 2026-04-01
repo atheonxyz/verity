@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		09F55AD2B03E798D1CB28F61 /* ProveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAC6478832950D95136F6FE /* ProveView.swift */; };
 		0D04728FC7E4BB85761BC78D /* complete_age_check_Prover.toml in Resources */ = {isa = PBXBuildFile; fileRef = A0B9E8C850D29C87617E922B /* complete_age_check_Prover.toml */; };
+		0E8EC4241B67C63DC76C99DD /* PhaseLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05FAEE1FB5939BE8DF464179 /* PhaseLogView.swift */; };
 		11822C43952018490424120E /* noir_sha256_circuit.json in Resources */ = {isa = PBXBuildFile; fileRef = 9B09ED5869B078991F90344D /* noir_sha256_circuit.json */; };
 		16916DBDAE5D0C6DF622681D /* poseidon2_verifier.pkv in Resources */ = {isa = PBXBuildFile; fileRef = 3098CC0AAD716D8C1281BEC7 /* poseidon2_verifier.pkv */; };
 		36B267B6A85FC0750C3E7121 /* complete_age_check_prover.pkp in Resources */ = {isa = PBXBuildFile; fileRef = D14ED706DE2641A89EA32E25 /* complete_age_check_prover.pkp */; };
@@ -30,6 +31,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		05FAEE1FB5939BE8DF464179 /* PhaseLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhaseLogView.swift; sourceTree = "<group>"; };
 		0AB0FF0AC1A12BCCE2769820 /* VerityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityService.swift; sourceTree = "<group>"; };
 		1EDFB0FDE11498432B30081B /* CircuitListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircuitListView.swift; sourceTree = "<group>"; };
 		222E4A660B4F7AFAF23603FB /* VerityDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerityDemoApp.swift; sourceTree = "<group>"; };
@@ -128,6 +130,7 @@
 			children = (
 				1EDFB0FDE11498432B30081B /* CircuitListView.swift */,
 				2E350DAA87A5638157DBDE46 /* ContentView.swift */,
+				05FAEE1FB5939BE8DF464179 /* PhaseLogView.swift */,
 				DBAC6478832950D95136F6FE /* ProveView.swift */,
 				4FF74B74CB1BADF2EB64663C /* ResultView.swift */,
 			);
@@ -213,7 +216,6 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					E53DCAA91B07CAAFEAB26C64 = {
-						DevelopmentTeam = TCNNXXM658;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -269,6 +271,7 @@
 			files = (
 				4D5A32B268D225E573166B13 /* CircuitListView.swift in Sources */,
 				7936318BEDF0B1FF4B31A0CE /* ContentView.swift in Sources */,
+				0E8EC4241B67C63DC76C99DD /* PhaseLogView.swift in Sources */,
 				8659567A89B9DF1957869628 /* ProofResult.swift in Sources */,
 				09F55AD2B03E798D1CB28F61 /* ProveView.swift in Sources */,
 				4D04D6B107B7920AEDFA00E7 /* ResultView.swift in Sources */,
@@ -287,7 +290,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = TCNNXXM658;
 				INFOPLIST_FILE = VerityDemo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -370,7 +372,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = TCNNXXM658;
 				INFOPLIST_FILE = VerityDemo/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

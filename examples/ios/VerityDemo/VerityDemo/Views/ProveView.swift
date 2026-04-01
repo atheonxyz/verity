@@ -6,6 +6,7 @@ struct ProveView: View {
     let circuit: DemoCircuit
 
     @State private var selectedBackend: Backend = .provekit
+    @State private var usePrecompiled = true
     @State private var result: ProofResult?
     @State private var isRunning = false
     @State private var error: String?
@@ -30,6 +31,11 @@ struct ProveView: View {
                     liveLog = []
                     currentPhase = nil
                 }
+
+                // Precompiled toggle
+                Toggle("Use Precompiled Schemes", isOn: $usePrecompiled)
+                    .font(.subheadline)
+                    .tint(.blue)
 
                 // Action button
                 Button(action: run) {
@@ -92,6 +98,7 @@ struct ProveView: View {
                 let r = try await service.generateAndVerify(
                     circuit: circuit,
                     backend: selectedBackend,
+                    usePrecompiled: usePrecompiled,
                     onPhase: { phase in
                         Task { @MainActor in currentPhase = phase }
                     },

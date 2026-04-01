@@ -20,6 +20,7 @@ let bundledCircuits = [
 
 enum ProofPhase: String, Sendable {
     case preparing = "Prepare"
+    case loading = "Load"
     case proving = "Prove"
     case verifying = "Verify"
     case done = "Done"

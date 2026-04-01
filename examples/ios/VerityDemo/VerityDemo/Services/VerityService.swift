@@ -10,6 +10,7 @@ actor VerityService {
     func generateAndVerify(
         circuit: DemoCircuit,
         backend: Backend,
+        usePrecompiled: Bool = true,
         onPhase: PhaseCallback? = nil,
         onPhaseComplete: PhaseLogCallback? = nil
     ) async throws -> ProofResult {
@@ -24,28 +25,37 @@ actor VerityService {
         let memoryBefore = snapshot(backend: backend)
         var phases: [PhaseLogEntry] = []
 
-        // --- Prepare ---
-        onPhase?(.preparing)
-        let prepareStart = CFAbsoluteTimeGetCurrent()
-        let prover: ProverScheme
-        let verifier: VerifierScheme
+        // --- Prepare or Load ---
+        var prover: ProverScheme
+        var verifier: VerifierScheme
         var usedPrecompiled = false
+        let prepareStart = CFAbsoluteTimeGetCurrent()
 
-        if backend == .provekit,
+        if usePrecompiled,
+           backend == .provekit,
            let pkpPath = optionalBundlePath("\(prefix)_prover", ext: "pkp"),
            let pkvPath = optionalBundlePath("\(prefix)_verifier", ext: "pkv") {
-            prover = try verity.loadProver(from: pkpPath)
-            verifier = try verity.loadVerifier(from: pkvPath)
-            usedPrecompiled = true
+            onPhase?(.loading)
+            do {
+                prover = try verity.loadProver(from: pkpPath)
+                verifier = try verity.loadVerifier(from: pkvPath)
+                usedPrecompiled = true
+            } catch {
+                // Pre-compiled .pkp/.pkv may be stale — compile from scratch
+                onPhase?(.preparing)
+                let scheme = try verity.prepare(circuit: circuitData)
+                prover = scheme.prover
+                verifier = scheme.verifier
+            }
         } else {
+            onPhase?(.preparing)
             let scheme = try verity.prepare(circuit: circuitData)
             prover = scheme.prover
             verifier = scheme.verifier
         }
-        let prover = scheme.prover
-        let verifier = scheme.verifier
         let prepareTime = CFAbsoluteTimeGetCurrent() - prepareStart
-        let prepareEntry = PhaseLogEntry(phase: .preparing, duration: prepareTime, memoryAfter: snapshot(backend: backend))
+        let preparePhase: ProofPhase = usedPrecompiled ? .loading : .preparing
+        let prepareEntry = PhaseLogEntry(phase: preparePhase, duration: prepareTime, memoryAfter: snapshot(backend: backend))
         phases.append(prepareEntry)
         onPhaseComplete?(prepareEntry)
 
@@ -132,5 +142,9 @@ actor VerityService {
             throw VerityError.invalidInput("bundled resource not found: \(name).\(ext)")
         }
         return path
+    }
+
+    private func optionalBundlePath(_ name: String, ext: String) -> String? {
+        Bundle.main.path(forResource: name, ofType: ext)
     }
 }
