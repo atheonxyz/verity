@@ -16,7 +16,7 @@ on:
       provekit-ref:
         description: "ProveKit git ref (branch, tag, or SHA)"
         required: false
-        default: "ash/v1-improve"
+        default: "v1"
         type: string
 
 jobs:
