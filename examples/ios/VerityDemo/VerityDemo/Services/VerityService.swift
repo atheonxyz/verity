@@ -42,6 +42,8 @@ actor VerityService {
             prover = scheme.prover
             verifier = scheme.verifier
         }
+        let prover = scheme.prover
+        let verifier = scheme.verifier
         let prepareTime = CFAbsoluteTimeGetCurrent() - prepareStart
         let prepareEntry = PhaseLogEntry(phase: .preparing, duration: prepareTime, memoryAfter: snapshot(backend: backend))
         phases.append(prepareEntry)
@@ -50,7 +52,13 @@ actor VerityService {
         // --- Prove ---
         onPhase?(.proving)
         let proveStart = CFAbsoluteTimeGetCurrent()
-        let proof = try prover.prove(witness: witness)
+        let proof: Proof
+        do {
+            proof = try prover.prove(witness: witness)
+        } catch {
+            let msg = (try? Verity.lastErrorMessage(for: backend)) ?? "none"
+            throw VerityError.invalidInput("prove() failed: \(error) | backend msg: \(msg)")
+        }
         let proveTime = CFAbsoluteTimeGetCurrent() - proveStart
         let proveEntry = PhaseLogEntry(phase: .proving, duration: proveTime, memoryAfter: snapshot(backend: backend))
         phases.append(proveEntry)
@@ -59,7 +67,13 @@ actor VerityService {
         // --- Verify ---
         onPhase?(.verifying)
         let verifyStart = CFAbsoluteTimeGetCurrent()
-        let isValid = try verifier.verify(proof: proof)
+        let isValid: Bool
+        do {
+            isValid = try verifier.verify(proof: proof)
+        } catch {
+            let msg = (try? Verity.lastErrorMessage(for: backend)) ?? "none"
+            throw VerityError.invalidInput("verify() failed: \(error) | backend msg: \(msg)")
+        }
         let verifyTime = CFAbsoluteTimeGetCurrent() - verifyStart
         let verifyEntry = PhaseLogEntry(phase: .verifying, duration: verifyTime, memoryAfter: snapshot(backend: backend))
         phases.append(verifyEntry)
@@ -118,9 +132,5 @@ actor VerityService {
             throw VerityError.invalidInput("bundled resource not found: \(name).\(ext)")
         }
         return path
-    }
-
-    private func optionalBundlePath(_ name: String, ext: String) -> String? {
-        Bundle.main.path(forResource: name, ofType: ext)
     }
 }

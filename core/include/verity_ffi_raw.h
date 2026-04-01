@@ -26,7 +26,7 @@ int  pk_init(void);
 int  pk_configure_memory(uintptr_t ram_limit_bytes, bool use_file_backed, const char *swap_file_path);
 int  pk_get_memory_stats(uintptr_t *ram_used, uintptr_t *swap_used, uintptr_t *peak_ram);
 int  pk_get_last_error(PKBuf *out);
-int  pk_prepare(const char *circuit_path, int hash_config, PKProver **out_prover, PKVerifier **out_verifier);
+int  pk_prepare(const char *circuit_path, PKProver **out_prover, PKVerifier **out_verifier);
 int  pk_load_prover(const char *path, PKProver **out);
 int  pk_load_verifier(const char *path, PKVerifier **out);
 int  pk_load_prover_bytes(const uint8_t *ptr, uintptr_t len, PKProver **out);
@@ -40,7 +40,7 @@ int  pk_prove_json(const PKProver *prover, const char *inputs_json, PKBuf *out);
 int  pk_verify(const PKVerifier *verifier, const uint8_t *proof_ptr, uintptr_t proof_len);
 void pk_free_prover(PKProver *prover);
 void pk_free_verifier(PKVerifier *verifier);
-void pk_free_buf(PKBuf buf);
+void pk_free_buf(PKBuf *buf);
 
 // --- Barretenberg (bb_*) ---
 // To add a new backend, copy this section with your prefix (e.g., h2_*).

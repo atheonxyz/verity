@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 import Verity
 
 struct ProveView: View {
@@ -23,7 +24,7 @@ struct ProveView: View {
                     Text("Barretenberg").tag(Backend.barretenberg)
                 }
                 .pickerStyle(.segmented)
-                .onChange(of: selectedBackend) {
+                .onChange(of: selectedBackend) { _ in
                     result = nil
                     error = nil
                     liveLog = []
@@ -103,6 +104,10 @@ struct ProveView: View {
                     isRunning = false
                 }
             } catch {
+                os_log("[VerityDemo] ERROR: \(error)")
+                if let lastMsg = try? Verity.lastErrorMessage(for: selectedBackend) {
+                    os_log("[VerityDemo] lastErrorMessage: \(lastMsg ?? "nil")")
+                }
                 await MainActor.run {
                     self.error = friendlyError(error)
                     isRunning = false
