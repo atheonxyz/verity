@@ -47,7 +47,7 @@ jobs:
         run: bash core/build/build-ios.sh provekit
       - name: Record artifact sizes
         run: |
-          echo "## iOS Artifact Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "## iOS Artifact Sizes" >> "$GITHUB_STEP_SUMMARY"
           find output/ \( -name '*.a' -o -name '*.xcframework' \) -print0 | while IFS= read -r -d '' f; do
             size=$(du -sh "$f" | cut -f1)
             echo "- \`$(basename "$f")\`: $size" >> "$GITHUB_STEP_SUMMARY"
@@ -85,7 +85,7 @@ jobs:
         run: bash core/build/build-android.sh provekit
       - name: Record artifact sizes
         run: |
-          echo "## Android Artifact Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "## Android Artifact Sizes" >> "$GITHUB_STEP_SUMMARY"
           find output/android \( -name '*.so' -o -name '*.a' \) -print0 | while IFS= read -r -d '' f; do
             size=$(du -sh "$f" | cut -f1)
             echo "- \`$(basename "$(dirname "$f")")/$(basename "$f")\`: $size" >> "$GITHUB_STEP_SUMMARY"
