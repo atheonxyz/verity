@@ -20,8 +20,11 @@ let xcframeworkPath = repoRoot.appendingPathComponent("output/Verity.xcframework
 let hasNativeXCFramework = FileManager.default.fileExists(atPath: xcframeworkPath)
 let configuredMode = ProcessInfo.processInfo.environment["VERITY_SWIFT_SDK_MODE"]
 
-// Detect if we are inside the monorepo (core/ directory exists) or consumed as a remote dependency.
-let isMonorepo = FileManager.default.fileExists(atPath: repoRoot.appendingPathComponent("core").path)
+// Detect if consumed as a remote SPM dependency (checked out into SourcePackages or .build).
+let isRemoteCheckout: Bool = {
+    let path = #filePath
+    return path.contains("/SourcePackages/checkouts/") || path.contains("/.build/checkouts/")
+}()
 
 // Read which backends were built into the xcframework (written by build-ios.sh)
 let backendsMarkerPath = repoRoot.appendingPathComponent("output/Verity.xcframework/backends").path
@@ -38,10 +41,10 @@ let swiftSDKMode: SwiftSDKMode = {
         }
         return mode
     }
-    // Auto-detect: local xcframework → native, monorepo without xcframework → source-only, remote consumer → release
+    // Auto-detect: local xcframework → native, remote checkout → release, otherwise source-only (monorepo dev)
     if hasNativeXCFramework { return .native }
-    if isMonorepo { return .sourceOnly }
-    return .release
+    if isRemoteCheckout { return .release }
+    return .sourceOnly
 }()
 
 if swiftSDKMode == .native && !hasNativeXCFramework {
