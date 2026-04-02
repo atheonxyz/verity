@@ -90,10 +90,10 @@ let package = Package(
             sources: swiftSDKMode != .sourceOnly
                 ? {
                     var srcs = ["verity_dispatch.c"]
-                    // For release mode, include all backend stubs (xcframework contains all built backends).
-                    // For native mode, only include backends detected from the local xcframework.
+                    // Release xcframework currently ships with ProveKit only.
+                    // Native mode reads the backends marker from the local xcframework.
                     if swiftSDKMode == .release || hasPK { srcs.append("backends/pk_backend.c") }
-                    if swiftSDKMode == .release || hasBB { srcs.append("backends/bb_backend.c") }
+                    if swiftSDKMode == .native && hasBB { srcs.append("backends/bb_backend.c") }
                     return srcs
                 }()
                 : [
