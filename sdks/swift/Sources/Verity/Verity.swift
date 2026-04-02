@@ -61,7 +61,7 @@ public final class Verity: @unchecked Sendable {
     private let backend: Backend
 
     /// The SDK version string (e.g., `"0.2.0"`).
-    public static let version = "0.2.0"
+    public static let version = "0.3.0"
 
     public static let runtimeMode: RuntimeMode = {
         #if VERITY_SWIFT_NATIVE_RUNTIME
