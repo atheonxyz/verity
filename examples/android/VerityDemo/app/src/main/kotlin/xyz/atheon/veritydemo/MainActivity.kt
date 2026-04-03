@@ -160,8 +160,8 @@ class MainActivity : AppCompatActivity() {
                         prover = verity.loadProver(proverPath)
                         verifier = verity.loadVerifier(verifierPath)
                         usedPrecompiled = true
-                    } catch (_: Throwable) {
-                        // Stale .pkp/.pkv — fall back to prepare
+                    } catch (e: Exception) {
+                        android.util.Log.w("VerityDemo", "Precompiled load failed, falling back to prepare", e)
                         updateStatus("Preparing ${circuit.name} ($bName)...")
                         val circuitPath = copyAssetToCache("${circuit.assetDir}/circuit.json")
                         val prepared = verity.prepare(circuitPath)
