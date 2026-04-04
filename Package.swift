@@ -5,6 +5,7 @@ import PackageDescription
 // Root-level Package.swift — forwards to sdks/swift/ sources so SPM can
 // resolve this repo as a package dependency directly.
 
+// NOTE: This enum is duplicated in sdks/swift/Package.swift — keep in sync.
 enum SwiftSDKMode: String {
     case sourceOnly = "source-only"
     case native

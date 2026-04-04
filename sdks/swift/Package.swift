@@ -2,6 +2,7 @@
 import Foundation
 import PackageDescription
 
+// NOTE: This enum is duplicated in the root Package.swift — keep in sync.
 enum SwiftSDKMode: String {
     case sourceOnly = "source-only"
     case native
