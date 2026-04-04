@@ -38,6 +38,14 @@ test-js: core-wasm core-native
 
 test-all: test-swift test-kotlin test-js
 
+# ── Fixture generation (for tests) ────────────────────────────────────
+
+.PHONY: test-fixtures
+
+test-fixtures: core-native
+	@echo "Generating test fixtures..."
+	bash core/tools/gen-fixtures.sh
+
 # ── Releases ───────────────────────────────────────────────────────────
 
 .PHONY: release-swift release-kotlin release-js

@@ -17,12 +17,17 @@ Your crate must export these `extern "C"` functions (replace `yb_` with your pre
 
 ```rust
 #[no_mangle] pub extern "C" fn yb_init() -> i32;
-#[no_mangle] pub extern "C" fn yb_prepare(...) -> i32;
+#[no_mangle] pub extern "C" fn yb_load_prover(...) -> i32;
+#[no_mangle] pub extern "C" fn yb_load_verifier(...) -> i32;
 #[no_mangle] pub extern "C" fn yb_prove_toml(...) -> i32;
 #[no_mangle] pub extern "C" fn yb_prove_json(...) -> i32;
 #[no_mangle] pub extern "C" fn yb_verify(...) -> i32;
-// ... plus load, save, serialize, free (see core/include/verity_ffi_raw.h)
+// ... plus load_bytes, save, serialize, free (see core/include/verity_ffi_raw.h)
 ```
+
+> **Note:** `prepare` (circuit compilation) is not part of the SDK vtable.
+> Backends may optionally implement `yb_prepare()` for use by the offline CLI tool,
+> but it is not registered in the vtable or called by the SDK.
 
 ### 2. Add vtable registration
 
