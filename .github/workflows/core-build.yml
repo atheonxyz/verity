@@ -148,6 +148,8 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build native
         run: bash core/build/build-native.sh
+        env:
+          PROTOC: protoc
       - uses: actions/upload-artifact@v4
         with:
           name: core-native-${{ matrix.os }}
