@@ -7,7 +7,6 @@ typedef struct BBProver BBProver;
 typedef struct BBVerifier BBVerifier;
 typedef struct { uint8_t *ptr; uintptr_t len; uintptr_t cap; } BBBuf;
 
-extern int  bb_prepare(const char *circuit_path, BBProver **out_prover, BBVerifier **out_verifier);
 extern int  bb_load_prover(const char *path, BBProver **out);
 extern int  bb_load_verifier(const char *path, BBVerifier **out);
 extern int  bb_load_prover_bytes(const uint8_t *ptr, uintptr_t len, BBProver **out);
@@ -32,9 +31,6 @@ _Static_assert(_Alignof(BBBuf) == _Alignof(RawBuf), "BBBuf/RawBuf alignment mism
 
 static int bb_init_noop(void) { return VERITY_SUCCESS; }
 
-static int w_bb_prepare(const char *path, void **p, void **v) {
-    return bb_prepare(path, (BBProver **)p, (BBVerifier **)v);
-}
 static int w_bb_load_prover(const char *path, void **out) {
     return bb_load_prover(path, (BBProver **)out);
 }
@@ -84,7 +80,6 @@ static void w_bb_free_buf(RawBuf buf) {
 
 static const VerityVtable bb_vtable = {
     .init                = bb_init_noop,
-    .prepare             = w_bb_prepare,
     .load_prover         = w_bb_load_prover,
     .load_verifier       = w_bb_load_verifier,
     .load_prover_bytes   = w_bb_load_prover_bytes,

@@ -24,18 +24,6 @@ int verity_init(VerityBackend backend) {
     return VERITY_UNKNOWN_BACKEND;
 }
 
-int verity_prepare(VerityBackend backend,
-                   const char *circuit_path,
-                   VerityProver **out_prover,
-                   VerityVerifier **out_verifier) {
-    (void)backend;
-    (void)circuit_path;
-    if (!out_prover || !out_verifier) return VERITY_INVALID_INPUT;
-    *out_prover = NULL;
-    *out_verifier = NULL;
-    return VERITY_UNKNOWN_BACKEND;
-}
-
 int verity_load_prover(VerityBackend backend, const char *path, VerityProver **out) {
     (void)backend;
     (void)path;
