@@ -12,8 +12,14 @@ struct PhaseLogView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                             .font(.subheadline)
-                        Text(entry.phase.rawValue)
-                            .foregroundStyle(.primary)
+                        if let step = entry.stepName {
+                            Text("\(step) — \(entry.phase.rawValue)")
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                        } else {
+                            Text(entry.phase.rawValue)
+                                .foregroundStyle(.primary)
+                        }
                         Spacer()
                         Text(formatTime(entry.duration))
                             .font(.subheadline.monospaced())

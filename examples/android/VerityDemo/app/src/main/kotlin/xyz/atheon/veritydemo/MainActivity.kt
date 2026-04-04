@@ -26,6 +26,7 @@ class MainActivity : AppCompatActivity() {
 
     private var selectedCircuit: DemoCircuit = BUNDLED_CIRCUITS[0]
     private var selectedBackend: Backend = backends[0]
+    private var usePrecompiled: Boolean = true
 
     @Volatile private var isRunning = false
     @Volatile private var isDestroyed = false
@@ -51,6 +52,10 @@ class MainActivity : AppCompatActivity() {
 
         setupCircuitSelector()
         setupBackendSelector()
+        binding.precompiledSwitch.setOnCheckedChangeListener { _, checked ->
+            usePrecompiled = checked
+            clearState()
+        }
 
         binding.generateButton.setOnClickListener {
             if (isRunning) return@setOnClickListener
@@ -141,18 +146,30 @@ class MainActivity : AppCompatActivity() {
                 val inputPath = copyAssetToCache("${circuit.assetDir}/Prover.toml")
                 val memBefore = nativeHeapMB()
 
-                // -- Prepare --
-                updateStatus("Preparing ${circuit.name} ($bName)...")
+                // -- Prepare or Load --
                 val prepareStart = System.nanoTime()
-                val prover: ProverScheme
-                val verifier: VerifierScheme
+                var prover: ProverScheme
+                var verifier: VerifierScheme
+                var usedPrecompiled = false
 
-                if (backend == Backend.PROVEKIT) {
-                    val proverPath = copyAssetToCache("${circuit.assetDir}/prover.pkp")
-                    val verifierPath = copyAssetToCache("${circuit.assetDir}/verifier.pkv")
-                    prover = verity.loadProver(proverPath)
-                    verifier = verity.loadVerifier(verifierPath)
+                if (usePrecompiled && backend == Backend.PROVEKIT) {
+                    updateStatus("Loading precompiled ${circuit.name} ($bName)...")
+                    try {
+                        val proverPath = copyAssetToCache("${circuit.assetDir}/prover.pkp")
+                        val verifierPath = copyAssetToCache("${circuit.assetDir}/verifier.pkv")
+                        prover = verity.loadProver(proverPath)
+                        verifier = verity.loadVerifier(verifierPath)
+                        usedPrecompiled = true
+                    } catch (e: Exception) {
+                        android.util.Log.w("VerityDemo", "Precompiled load failed, falling back to prepare", e)
+                        updateStatus("Preparing ${circuit.name} ($bName)...")
+                        val circuitPath = copyAssetToCache("${circuit.assetDir}/circuit.json")
+                        val prepared = verity.prepare(circuitPath)
+                        prover = prepared.prover
+                        verifier = prepared.verifier
+                    }
                 } else {
+                    updateStatus("Preparing ${circuit.name} ($bName)...")
                     val circuitPath = copyAssetToCache("${circuit.assetDir}/circuit.json")
                     val prepared = verity.prepare(circuitPath)
                     prover = prepared.prover
@@ -190,6 +207,7 @@ class MainActivity : AppCompatActivity() {
                     prepareTimeMs = prepareMs, proveTimeMs = proveMs,
                     verifyTimeMs = verifyMs, isValid = isValid,
                     nativeMemoryMB = memAfter - memBefore,
+                    usedPrecompiled = usedPrecompiled,
                 )
                 lastResult = result
 
@@ -522,7 +540,8 @@ class MainActivity : AppCompatActivity() {
             append("Circuit:  ${result.circuit.name}\n")
             append("Backend:  $bName\n")
             append("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n")
-            append("Prepare:  ${formatMs(result.prepareTimeMs)}\n")
+            val prepLabel = if (result.usedPrecompiled) "Load" else "Prepare"
+            append("$prepLabel:  ${formatMs(result.prepareTimeMs)}\n")
             append("Prove:    ${formatMs(result.proveTimeMs)}\n")
             append("Verify:   ${formatMs(result.verifyTimeMs)}\n")
             append("Total:    ${formatMs(result.totalTimeMs)}\n")

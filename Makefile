@@ -1,15 +1,16 @@
 VERSION := $(shell cat VERSION)
 PROVEKIT_PATH ?= ../provekit
+BACKENDS ?=
 
 # ── Core builds ────────────────────────────────────────────────────────
 
 .PHONY: core-ios core-android core-wasm core-native core-all
 
 core-ios:
-	bash core/build/build-ios.sh $(PROVEKIT_PATH)
+	bash core/build/build-ios.sh $(PROVEKIT_PATH) $(if $(BACKENDS),--backends $(BACKENDS))
 
 core-android:
-	bash core/build/build-android.sh $(PROVEKIT_PATH)
+	bash core/build/build-android.sh $(PROVEKIT_PATH) $(if $(BACKENDS),--backends $(BACKENDS))
 
 core-wasm:
 	bash core/build/build-wasm.sh

@@ -12,6 +12,7 @@ data class ProofResult(
     val verifyTimeMs: Long,
     val isValid: Boolean,
     val nativeMemoryMB: Long,
+    val usedPrecompiled: Boolean = false,
 ) {
     val totalTimeMs: Long get() = prepareTimeMs + proveTimeMs + verifyTimeMs
     val proofSize: Int get() = proof.size

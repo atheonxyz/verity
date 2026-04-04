@@ -2,10 +2,16 @@
 import Foundation
 import PackageDescription
 
+// NOTE: This enum is duplicated in the root Package.swift — keep in sync.
 enum SwiftSDKMode: String {
     case sourceOnly = "source-only"
     case native
+    case release
 }
+
+// Release binary target — update URL and checksum for each release.
+let releaseXCFrameworkURL = "https://github.com/atheonxyz/verity/releases/download/v0.3.0/Verity.xcframework.zip"
+let releaseXCFrameworkChecksum = "c8e1f78519a976b2a9970c8f0b110793139bc2a7d3dd5df5f6c62c64eb3705f9"
 
 let repoRoot = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
@@ -16,14 +22,31 @@ let xcframeworkPath = repoRoot.appendingPathComponent("output/Verity.xcframework
 let hasNativeXCFramework = FileManager.default.fileExists(atPath: xcframeworkPath)
 let configuredMode = ProcessInfo.processInfo.environment["VERITY_SWIFT_SDK_MODE"]
 
+// Detect if consumed as a remote SPM dependency (checked out into SourcePackages or .build).
+let isRemoteCheckout: Bool = {
+    let path = #filePath
+    return path.contains("/SourcePackages/checkouts/") || path.contains("/.build/checkouts/")
+}()
+
+// Read which backends were built into the xcframework (written by build-ios.sh)
+let backendsMarkerPath = repoRoot.appendingPathComponent("output/Verity.xcframework/backends").path
+let builtBackends: String = (try? String(contentsOfFile: backendsMarkerPath, encoding: .utf8))?
+    .trimmingCharacters(in: .whitespacesAndNewlines) ?? "provekit"
+let hasPK = builtBackends == "provekit" || builtBackends == "all"
+let hasBB = builtBackends == "bb" || builtBackends == "all"
+
 let swiftSDKMode: SwiftSDKMode = {
-    guard let configuredMode else {
-        return .sourceOnly
+    // Explicit override via environment variable
+    if let configuredMode {
+        guard let mode = SwiftSDKMode(rawValue: configuredMode) else {
+            fatalError("Unsupported VERITY_SWIFT_SDK_MODE='\(configuredMode)'. Use 'source-only', 'native', or 'release'.")
+        }
+        return mode
     }
-    guard let mode = SwiftSDKMode(rawValue: configuredMode) else {
-        fatalError("Unsupported VERITY_SWIFT_SDK_MODE='\(configuredMode)'. Use 'source-only' or 'native'.")
-    }
-    return mode
+    // Auto-detect: local xcframework → native, remote checkout → release, otherwise source-only (monorepo dev)
+    if hasNativeXCFramework { return .native }
+    if isRemoteCheckout { return .release }
+    return .sourceOnly
 }()
 
 if swiftSDKMode == .native && !hasNativeXCFramework {
@@ -32,13 +55,24 @@ if swiftSDKMode == .native && !hasNativeXCFramework {
 
 var targets: [Target] = []
 
-if swiftSDKMode == .native {
+switch swiftSDKMode {
+case .native:
     targets.append(
         .binaryTarget(
             name: "VerityFFI",
             path: relativeXCFrameworkPath
         )
     )
+case .release:
+    targets.append(
+        .binaryTarget(
+            name: "VerityFFI",
+            url: releaseXCFrameworkURL,
+            checksum: releaseXCFrameworkChecksum
+        )
+    )
+case .sourceOnly:
+    break
 }
 
 let package = Package(
@@ -50,17 +84,19 @@ let package = Package(
     targets: targets + [
         .target(
             name: "VerityDispatch",
-            dependencies: swiftSDKMode == .native ? ["VerityFFI"] : [],
+            dependencies: swiftSDKMode != .sourceOnly ? ["VerityFFI"] : [],
             path: "VerityDispatch",
-            // Native mobile builds ship ProveKit only — the Barretenberg
-            // backend requires large SRS reference data that is impractical
-            // on memory-constrained devices.  bb_backend.c is intentionally
-            // excluded; see testBarretenbergIsUnavailableInNativeMobileArtifact.
-            sources: swiftSDKMode == .native
-                ? [
-                    "verity_dispatch.c",
-                    "backends/pk_backend.c",
-                ]
+            // Which backend .c files to compile depends on what was built into
+            // the xcframework (detected from output/Verity.xcframework/backends marker).
+            sources: swiftSDKMode != .sourceOnly
+                ? {
+                    var srcs = ["verity_dispatch.c"]
+                    // Release xcframework currently ships with ProveKit only.
+                    // Native mode reads the backends marker from the local xcframework.
+                    if swiftSDKMode == .release || hasPK { srcs.append("backends/pk_backend.c") }
+                    if swiftSDKMode == .native && hasBB { srcs.append("backends/bb_backend.c") }
+                    return srcs
+                }()
                 : [
                     "stub/verity_dispatch_stub.c",
                 ],
@@ -78,7 +114,7 @@ let package = Package(
             path: "Sources/Verity",
             swiftSettings: [
                 .define(
-                    swiftSDKMode == .native ? "VERITY_SWIFT_NATIVE_RUNTIME" : "VERITY_SWIFT_SOURCE_ONLY_RUNTIME"
+                    swiftSDKMode != .sourceOnly ? "VERITY_SWIFT_NATIVE_RUNTIME" : "VERITY_SWIFT_SOURCE_ONLY_RUNTIME"
                 )
             ]
         ),
@@ -94,7 +130,7 @@ let package = Package(
             sources: ["VerityUnitTests.swift"]
         ),
     ] + (
-        swiftSDKMode == .native
+        swiftSDKMode != .sourceOnly
             ? [
                 .testTarget(
                     name: "VerityNativeIntegrationTests",

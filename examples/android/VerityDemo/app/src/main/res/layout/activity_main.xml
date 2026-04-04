@@ -70,6 +70,17 @@
                     android:inputType="none" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- ===== Precompiled Toggle ===== -->
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/precompiledSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/label_precompiled"
+                android:checked="true"
+                android:textSize="14sp"
+                android:layout_marginBottom="16dp" />
+
             <!-- ===== Status Card ===== -->
 
             <com.google.android.material.card.MaterialCardView

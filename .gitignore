@@ -36,6 +36,9 @@ target/
 .omc/
 docs/superpowers/
 
-# Examples (Xcode projects are generated)
-examples/ios/BasicProof/*.xcodeproj/
-examples/ios/Showcase/*.xcodeproj/
+# Pre-compiled schemes (regenerate with scripts/regenerate-schemes.sh)
+*.pkp
+*.pkv
+
+# Examples (Xcode projects are generated from project.yml via xcodegen)
+examples/ios/**/*.xcodeproj/

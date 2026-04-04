@@ -6,7 +6,9 @@ struct ProveView: View {
     let circuit: DemoCircuit
 
     @State private var selectedBackend: Backend = .provekit
+    @State private var usePrecompiled = true
     @State private var result: ProofResult?
+    @State private var fragmentedResults: [StepResult]?
     @State private var isRunning = false
     @State private var error: String?
     @State private var runTask: Task<Void, Never>?
@@ -30,6 +32,11 @@ struct ProveView: View {
                     liveLog = []
                     currentPhase = nil
                 }
+
+                // Precompiled toggle
+                Toggle("Use Precompiled Schemes", isOn: $usePrecompiled)
+                    .font(.subheadline)
+                    .tint(.blue)
 
                 // Action button
                 Button(action: run) {
@@ -63,9 +70,14 @@ struct ProveView: View {
                     }
                 }
 
-                // Result
+                // Result (single circuit)
                 if let result {
                     ResultView(result: result)
+                }
+
+                // Result (fragmented)
+                if let steps = fragmentedResults {
+                    FragmentedResultView(steps: steps)
                 }
             }
             .padding()
@@ -84,24 +96,44 @@ struct ProveView: View {
         isRunning = true
         error = nil
         result = nil
+        fragmentedResults = nil
         liveLog = []
         currentPhase = nil
 
         runTask = Task {
             do {
-                let r = try await service.generateAndVerify(
-                    circuit: circuit,
-                    backend: selectedBackend,
-                    onPhase: { phase in
-                        Task { @MainActor in currentPhase = phase }
-                    },
-                    onPhaseComplete: { entry in
-                        Task { @MainActor in liveLog.append(entry) }
+                if circuit.isFragmented {
+                    let (steps, _, _, _) = try await service.generateAndVerifyFragmented(
+                        circuit: circuit,
+                        backend: selectedBackend,
+                        usePrecompiled: usePrecompiled,
+                        onPhase: { phase in
+                            Task { @MainActor in currentPhase = phase }
+                        },
+                        onPhaseComplete: { entry in
+                            Task { @MainActor in liveLog.append(entry) }
+                        }
+                    )
+                    await MainActor.run {
+                        fragmentedResults = steps
+                        isRunning = false
                     }
-                )
-                await MainActor.run {
-                    result = r
-                    isRunning = false
+                } else {
+                    let r = try await service.generateAndVerify(
+                        circuit: circuit,
+                        backend: selectedBackend,
+                        usePrecompiled: usePrecompiled,
+                        onPhase: { phase in
+                            Task { @MainActor in currentPhase = phase }
+                        },
+                        onPhaseComplete: { entry in
+                            Task { @MainActor in liveLog.append(entry) }
+                        }
+                    )
+                    await MainActor.run {
+                        result = r
+                        isRunning = false
+                    }
                 }
             } catch {
                 os_log("[VerityDemo] ERROR: \(error)")

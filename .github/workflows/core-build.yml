@@ -11,7 +11,7 @@ on:
       rust-toolchain:
         description: "Rust toolchain to use"
         required: false
-        default: "nightly"
+        default: "nightly-2026-03-04"
         type: string
       provekit-ref:
         description: "ProveKit git ref (branch, tag, or SHA)"
@@ -47,7 +47,7 @@ jobs:
         run: bash core/build/build-ios.sh provekit
       - name: Record artifact sizes
         run: |
-          echo "## iOS Artifact Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "## iOS Artifact Sizes" >> "$GITHUB_STEP_SUMMARY"
           find output/ \( -name '*.a' -o -name '*.xcframework' \) -print0 | while IFS= read -r -d '' f; do
             size=$(du -sh "$f" | cut -f1)
             echo "- \`$(basename "$f")\`: $size" >> "$GITHUB_STEP_SUMMARY"
@@ -85,7 +85,7 @@ jobs:
         run: bash core/build/build-android.sh provekit
       - name: Record artifact sizes
         run: |
-          echo "## Android Artifact Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "## Android Artifact Sizes" >> "$GITHUB_STEP_SUMMARY"
           find output/android \( -name '*.so' -o -name '*.a' \) -print0 | while IFS= read -r -d '' f; do
             size=$(du -sh "$f" | cut -f1)
             echo "- \`$(basename "$(dirname "$f")")/$(basename "$f")\`: $size" >> "$GITHUB_STEP_SUMMARY"
@@ -144,6 +144,8 @@ jobs:
           restore-keys: rust-native-${{ matrix.os }}-${{ inputs.rust-toolchain }}-
       - name: Build native
         run: bash core/build/build-native.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4
         with:
           name: core-native-${{ matrix.os }}
