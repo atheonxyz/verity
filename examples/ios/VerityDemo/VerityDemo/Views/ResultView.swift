@@ -44,8 +44,7 @@ struct ResultView: View {
     private var timingSection: some View {
         GroupBox("Timing") {
             VStack(spacing: 8) {
-                timingRow("Prepare", result.prepareTime,
-                          note: result.usedPrecompiled ? "pre-compiled" : nil)
+                timingRow("Load", result.loadTime)
                 timingRow("Prove", result.proveTime)
                 timingRow("Verify", result.verifyTime)
                 Divider()

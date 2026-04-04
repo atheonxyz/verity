@@ -7,13 +7,12 @@ data class ProofResult(
     val circuit: DemoCircuit,
     val backend: Backend,
     val proof: Proof,
-    val prepareTimeMs: Long,
+    val loadTimeMs: Long,
     val proveTimeMs: Long,
     val verifyTimeMs: Long,
     val isValid: Boolean,
     val nativeMemoryMB: Long,
-    val usedPrecompiled: Boolean = false,
 ) {
-    val totalTimeMs: Long get() = prepareTimeMs + proveTimeMs + verifyTimeMs
+    val totalTimeMs: Long get() = loadTimeMs + proveTimeMs + verifyTimeMs
     val proofSize: Int get() = proof.size
 }

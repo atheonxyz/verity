@@ -11,7 +11,6 @@ import xyz.atheon.verity.Proof
 import xyz.atheon.verity.ProverScheme
 import xyz.atheon.verity.Verity
 import xyz.atheon.verity.VerifierScheme
-import xyz.atheon.verity.VerityException
 import xyz.atheon.verity.Witness
 import xyz.atheon.veritydemo.databinding.ActivityMainBinding
 import com.google.android.material.snackbar.Snackbar
@@ -26,7 +25,6 @@ class MainActivity : AppCompatActivity() {
 
     private var selectedCircuit: DemoCircuit = BUNDLED_CIRCUITS[0]
     private var selectedBackend: Backend = backends[0]
-    private var usePrecompiled: Boolean = true
 
     @Volatile private var isRunning = false
     @Volatile private var isDestroyed = false
@@ -52,11 +50,6 @@ class MainActivity : AppCompatActivity() {
 
         setupCircuitSelector()
         setupBackendSelector()
-        binding.precompiledSwitch.setOnCheckedChangeListener { _, checked ->
-            usePrecompiled = checked
-            clearState()
-        }
-
         binding.generateButton.setOnClickListener {
             if (isRunning) return@setOnClickListener
             if (selectedCircuit.isFragmented) runFragmented() else runGenerateAndVerify()
@@ -146,36 +139,14 @@ class MainActivity : AppCompatActivity() {
                 val inputPath = copyAssetToCache("${circuit.assetDir}/Prover.toml")
                 val memBefore = nativeHeapMB()
 
-                // -- Prepare or Load --
-                val prepareStart = System.nanoTime()
-                var prover: ProverScheme
-                var verifier: VerifierScheme
-                var usedPrecompiled = false
-
-                if (usePrecompiled && backend == Backend.PROVEKIT) {
-                    updateStatus("Loading precompiled ${circuit.name} ($bName)...")
-                    try {
-                        val proverPath = copyAssetToCache("${circuit.assetDir}/prover.pkp")
-                        val verifierPath = copyAssetToCache("${circuit.assetDir}/verifier.pkv")
-                        prover = verity.loadProver(proverPath)
-                        verifier = verity.loadVerifier(verifierPath)
-                        usedPrecompiled = true
-                    } catch (e: Exception) {
-                        android.util.Log.w("VerityDemo", "Precompiled load failed, falling back to prepare", e)
-                        updateStatus("Preparing ${circuit.name} ($bName)...")
-                        val circuitPath = copyAssetToCache("${circuit.assetDir}/circuit.json")
-                        val prepared = verity.prepare(circuitPath)
-                        prover = prepared.prover
-                        verifier = prepared.verifier
-                    }
-                } else {
-                    updateStatus("Preparing ${circuit.name} ($bName)...")
-                    val circuitPath = copyAssetToCache("${circuit.assetDir}/circuit.json")
-                    val prepared = verity.prepare(circuitPath)
-                    prover = prepared.prover
-                    verifier = prepared.verifier
-                }
-                val prepareMs = (System.nanoTime() - prepareStart) / 1_000_000
+                // -- Load --
+                updateStatus("Loading ${circuit.name} ($bName)...")
+                val loadStart = System.nanoTime()
+                val proverPath = copyAssetToCache("${circuit.assetDir}/prover.pkp")
+                val verifierPath = copyAssetToCache("${circuit.assetDir}/verifier.pkv")
+                val prover = verity.loadProver(proverPath)
+                val verifier = verity.loadVerifier(verifierPath)
+                val loadMs = (System.nanoTime() - loadStart) / 1_000_000
                 proverScheme = prover
                 verifierScheme = verifier
 
@@ -204,10 +175,9 @@ class MainActivity : AppCompatActivity() {
 
                 val result = ProofResult(
                     circuit = circuit, backend = backend, proof = proof,
-                    prepareTimeMs = prepareMs, proveTimeMs = proveMs,
+                    loadTimeMs = loadMs, proveTimeMs = proveMs,
                     verifyTimeMs = verifyMs, isValid = isValid,
                     nativeMemoryMB = memAfter - memBefore,
-                    usedPrecompiled = usedPrecompiled,
                 )
                 lastResult = result
 
@@ -323,7 +293,7 @@ class MainActivity : AppCompatActivity() {
                 val memBefore = nativeHeapMB()
 
                 data class StepTiming(
-                    val step: String, val prepareMs: Long,
+                    val step: String, val loadMs: Long,
                     val proveMs: Long, val verifyMs: Long,
                     val isValid: Boolean,
                 )
@@ -336,11 +306,11 @@ class MainActivity : AppCompatActivity() {
                     val proverPath = copyAssetToCache("${circuit.assetDir}/$step/prover.pkp")
                     val verifierPath = copyAssetToCache("${circuit.assetDir}/$step/verifier.pkv")
 
-                    // Prepare
-                    val prepareStart = System.nanoTime()
+                    // Load
+                    val loadStart = System.nanoTime()
                     val proverScheme = verity.loadProver(proverPath)
                     val verifierScheme = verity.loadVerifier(verifierPath)
-                    val prepareMs = (System.nanoTime() - prepareStart) / 1_000_000
+                    val loadMs = (System.nanoTime() - loadStart) / 1_000_000
                     verifiers.add(verifierScheme)
 
                     // Prove
@@ -357,14 +327,14 @@ class MainActivity : AppCompatActivity() {
                     val isValid = verifierScheme.verify(proof)
                     val verifyMs = (System.nanoTime() - verifyStart) / 1_000_000
 
-                    timings.add(StepTiming(step, prepareMs, proveMs, verifyMs, isValid))
+                    timings.add(StepTiming(step, loadMs, proveMs, verifyMs, isValid))
 
                     if (!isValid) break
                 }
 
                 val memAfter = nativeHeapMB()
                 val allValid = timings.all { it.isValid }
-                val totalPrepareMs = timings.sumOf { it.prepareMs }
+                val totalLoadMs = timings.sumOf { it.loadMs }
                 val totalProveMs = timings.sumOf { it.proveMs }
                 val totalVerifyMs = timings.sumOf { it.verifyMs }
                 val totalProofBytes = proofs.sumOf { it.size }
@@ -383,17 +353,17 @@ class MainActivity : AppCompatActivity() {
                     append("\n")
                     for (t in timings) {
                         append("${t.step}\n")
-                        append("  Prepare: ${formatMs(t.prepareMs)}  ")
+                        append("  Load: ${formatMs(t.loadMs)}  ")
                         append("Prove: ${formatMs(t.proveMs)}  ")
                         append("Verify: ${formatMs(t.verifyMs)}  ")
                         append(if (t.isValid) "VALID" else "INVALID")
                         append("\n")
                     }
                     append("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n")
-                    append("Prepare:  ${formatMs(totalPrepareMs)}\n")
+                    append("Load:     ${formatMs(totalLoadMs)}\n")
                     append("Prove:    ${formatMs(totalProveMs)}\n")
                     append("Verify:   ${formatMs(totalVerifyMs)}\n")
-                    append("Total:    ${formatMs(totalPrepareMs + totalProveMs + totalVerifyMs)}\n")
+                    append("Total:    ${formatMs(totalLoadMs + totalProveMs + totalVerifyMs)}\n")
                     append("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n")
                     append("Proof:    ${formatBytes(totalProofBytes)} (${proofs.size} proofs)\n")
                     append("Memory:   ${memBefore}MB \u2192 ${memAfter}MB")
@@ -540,8 +510,7 @@ class MainActivity : AppCompatActivity() {
             append("Circuit:  ${result.circuit.name}\n")
             append("Backend:  $bName\n")
             append("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n")
-            val prepLabel = if (result.usedPrecompiled) "Load" else "Prepare"
-            append("$prepLabel:  ${formatMs(result.prepareTimeMs)}\n")
+            append("Load:     ${formatMs(result.loadTimeMs)}\n")
             append("Prove:    ${formatMs(result.proveTimeMs)}\n")
             append("Verify:   ${formatMs(result.verifyTimeMs)}\n")
             append("Total:    ${formatMs(result.totalTimeMs)}\n")
@@ -614,11 +583,9 @@ class MainActivity : AppCompatActivity() {
             "Out of memory running ${circuit.name}. Try a smaller circuit or free device memory."
         is java.io.FileNotFoundException ->
             "Missing asset: ${t.message}"
-        is VerityException.CompilationFailed ->
-            "Circuit compilation failed for ${circuit.name}. Check that circuit.json is valid."
-        is VerityException.SchemeReadError ->
+        is xyz.atheon.verity.VerityException.SchemeReadError ->
             "Failed to read scheme file for ${circuit.name}. Check that .pkp/.pkv files are valid."
-        is VerityException ->
+        is xyz.atheon.verity.VerityException ->
             t.message ?: "Verity error"
         else ->
             t.message ?: "Unknown error"
