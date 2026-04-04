@@ -3,7 +3,7 @@ import VerityDispatch
 
 /// Opaque handle to a compiled prover scheme.
 ///
-/// Created by ``Verity/prepare(circuit:)`` or ``Verity/loadProver(from:)``.
+/// Created by ``Verity/loadProver(from:)``.
 /// Automatically freed on deinit. Can be reused for multiple prove calls.
 ///
 /// Thread-safe: all operations are internally synchronized.

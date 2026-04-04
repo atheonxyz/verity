@@ -13,10 +13,6 @@ export class BarretenbergBinding implements BackendBinding {
     throw new Error("Barretenberg WASM binding not yet implemented");
   }
 
-  async prepare(circuit: string | Uint8Array): Promise<{ prover: ProverScheme; verifier: VerifierScheme }> {
-    throw new Error("Not implemented");
-  }
-
   async prove(prover: ProverScheme, inputs: string | Record<string, unknown>): Promise<Uint8Array> {
     throw new Error("Not implemented");
   }

@@ -26,18 +26,9 @@ export interface VerifierScheme {
   dispose(): void;
 }
 
-/** Result of prepare() — holds both prover and verifier schemes. */
-export interface PreparedScheme {
-  readonly prover: ProverScheme;
-  readonly verifier: VerifierScheme;
-  /** Dispose both schemes. */
-  dispose(): void;
-}
-
 /** Backend binding interface — implemented per runtime (Node/WASM). */
 export interface BackendBinding {
   init(): Promise<void>;
-  prepare(circuit: string | Uint8Array): Promise<{ prover: ProverScheme; verifier: VerifierScheme }>;
   prove(prover: ProverScheme, inputs: string | Record<string, unknown>): Promise<Uint8Array>;
   verify(verifier: VerifierScheme, proof: Uint8Array): Promise<boolean>;
   loadProver(data: Uint8Array): Promise<ProverScheme>;

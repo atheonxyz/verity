@@ -97,44 +97,6 @@ Java_xyz_atheon_verity_Verity_nativeInit(
 }
 
 /* ------------------------------------------------------------------ */
-/*  Prepare — returns prover + verifier handles as jlong array        */
-/* ------------------------------------------------------------------ */
-
-JNIEXPORT jlongArray JNICALL
-Java_xyz_atheon_verity_Verity_nativePrepare(
-    JNIEnv *env, jclass clazz, jint backend, jstring circuitPath)
-{
-    const char *circuit = jstring_to_cstr(env, circuitPath);
-    if (circuit == NULL) {
-        throw_verity_error(env, VERITY_INVALID_INPUT);
-        return NULL;
-    }
-
-    VerityProver *prover = NULL;
-    VerityVerifier *verifier = NULL;
-    int code = verity_prepare((VerityBackend)backend, circuit, &prover, &verifier);
-
-    release_cstr(env, circuitPath, circuit);
-
-    if (code != 0) {
-        throw_verity_error(env, code);
-        return NULL;
-    }
-
-    /* Return [proverHandle, verifierHandle] as a jlong array. */
-    jlongArray result = (*env)->NewLongArray(env, 2);
-    if (result == NULL) {
-        verity_free_prover(prover);
-        verity_free_verifier(verifier);
-        return NULL; /* OOM */
-    }
-
-    jlong handles[2] = { (jlong)(uintptr_t)prover, (jlong)(uintptr_t)verifier };
-    (*env)->SetLongArrayRegion(env, result, 0, 2, handles);
-    return result;
-}
-
-/* ------------------------------------------------------------------ */
 /*  Prove (TOML file) — takes prover handle, returns proof bytes      */
 /* ------------------------------------------------------------------ */
 

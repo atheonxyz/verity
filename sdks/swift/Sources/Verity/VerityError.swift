@@ -10,8 +10,6 @@ public enum VerityError: LocalizedError, Equatable {
     case proofFailed(String)
     /// Serialization error.
     case serializationError
-    /// Circuit compilation failed.
-    case compilationFailed(String)
     /// Unknown or unregistered backend.
     case unknownBackend
     /// Memory allocation failed.
@@ -31,8 +29,6 @@ public enum VerityError: LocalizedError, Equatable {
             return "Proof generation failed: \(msg)"
         case .serializationError:
             return "Serialization error. The data may be corrupted or from an incompatible version."
-        case .compilationFailed(let msg):
-            return "Circuit compilation failed: \(msg). Ensure the circuit JSON was produced by `nargo compile`."
         case .unknownBackend:
             return "Unknown backend. Use .provekit or .barretenberg."
         case .outOfMemory:
@@ -55,7 +51,6 @@ public enum VerityError: LocalizedError, Equatable {
         case 5: return .serializationError
         case 6: return .invalidInput("string contains invalid UTF-8")
         case 7: return .invalidInput("file write error — check that the destination directory exists and is writable")
-        case 8: return .compilationFailed("circuit compilation error")
         case 9: return .unknownBackend
         case 10: return .outOfMemory
         default: return .ffiError(code: code)

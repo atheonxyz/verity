@@ -17,13 +17,13 @@ final class VerityNativeIntegrationTests: XCTestCase {
         XCTAssertEqual(Verity.runtimeMode, .native)
     }
 
-    func testProveKitPrepareProveVerify() throws {
+    func testProveKitLoadProveVerify() throws {
         let verity = try Verity(backend: .provekit)
-        let circuit = try Circuit.load(from: fixturePath("circuit.json"))
-        let scheme = try verity.prepare(circuit: circuit)
-        let proof = try scheme.prover.prove(witness: try Witness.load(from: fixturePath("Prover.toml")))
+        let prover = try verity.loadProver(from: fixturePath("prover.pkp"))
+        let verifier = try verity.loadVerifier(from: fixturePath("verifier.pkv"))
+        let proof = try prover.prove(witness: try Witness.load(from: fixturePath("Prover.toml")))
         XCTAssertFalse(proof.data.isEmpty)
-        XCTAssertTrue(try scheme.verifier.verify(proof: proof))
+        XCTAssertTrue(try verifier.verify(proof: proof))
     }
 
     func testBarretenbergIsUnavailableInNativeMobileArtifact() {

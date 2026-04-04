@@ -1,4 +1,4 @@
-import { Backend, type BackendBinding, type PreparedScheme, type ProverScheme, type VerifierScheme } from "./types.js";
+import { Backend, type BackendBinding, type ProverScheme, type VerifierScheme } from "./types.js";
 import { VerityError, VerityErrorCode } from "./errors.js";
 
 /**
@@ -6,10 +6,11 @@ import { VerityError, VerityErrorCode } from "./errors.js";
  *
  * Usage:
  * ```ts
- * const verity = await Verity.create(Backend.Barretenberg);
- * const scheme = await verity.prepare(circuitJSON);
- * const proof = await verity.prove(scheme.prover, { a: 1, b: 2 });
- * const valid = await verity.verify(scheme.verifier, proof);
+ * const verity   = await Verity.create(Backend.Barretenberg);
+ * const prover   = await verity.loadProver(proverBytes);
+ * const verifier = await verity.loadVerifier(verifierBytes);
+ * const proof    = await verity.prove(prover, { a: 1, b: 2 });
+ * const valid    = await verity.verify(verifier, proof);
  * ```
  */
 export class Verity {
@@ -42,19 +43,6 @@ export class Verity {
       VerityErrorCode.BACKEND_UNAVAILABLE,
       `Backend ${Backend[backend]} binding not yet implemented`
     );
-  }
-
-  /** Compile a circuit into prover + verifier schemes. */
-  async prepare(circuit: string | Uint8Array): Promise<PreparedScheme> {
-    const { prover, verifier } = await this.binding.prepare(circuit);
-    return {
-      prover,
-      verifier,
-      dispose() {
-        prover.dispose();
-        verifier.dispose();
-      },
-    };
   }
 
   /** Generate a proof. */
