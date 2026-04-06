@@ -69,4 +69,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Dry run summary
         if: ${{ inputs.dry_run }}
-        run: echo "Dry run complete. Would publish v${{ needs.validate.outputs.version }}." >> $GITHUB_STEP_SUMMARY
+        run: echo "Dry run complete. Would publish v${{ needs.validate.outputs.version }}." >> "$GITHUB_STEP_SUMMARY"
