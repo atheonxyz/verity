@@ -36,7 +36,7 @@ test-kotlin: core-android
 test-js: core-wasm core-native
 	cd sdks/js && npm test
 
-test-all: test-swift test-kotlin test-js
+test-all: test-fixtures test-swift test-kotlin test-js
 
 # ── Fixture generation (for tests) ────────────────────────────────────
 
@@ -44,7 +44,7 @@ test-all: test-swift test-kotlin test-js
 
 test-fixtures: core-native
 	@echo "Generating test fixtures..."
-	bash core/tools/gen-fixtures.sh
+	bash tests/gen-fixtures.sh
 
 # ── Releases ───────────────────────────────────────────────────────────
 

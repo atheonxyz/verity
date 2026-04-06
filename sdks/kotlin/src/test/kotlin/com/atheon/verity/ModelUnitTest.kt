@@ -6,23 +6,12 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import xyz.atheon.verity.Circuit
 import xyz.atheon.verity.Proof
 import xyz.atheon.verity.Verity
 import xyz.atheon.verity.VerityException
 import xyz.atheon.verity.Witness
 
 class ModelUnitTest {
-
-    @Test
-    fun circuitFromBytesCopiesInput() {
-        val bytes = byteArrayOf(1, 2, 3)
-        val circuit = Circuit.fromBytes(bytes)
-
-        bytes[0] = 9
-
-        assertArrayEquals(byteArrayOf(1, 2, 3), circuit.data)
-    }
 
     @Test
     fun proofFromBytesCopiesInput() {

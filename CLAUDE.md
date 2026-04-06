@@ -53,10 +53,10 @@ Rust FFI Backends (ProveKit, Barretenberg)
 
 ### C Dispatcher (`core/dispatcher/`)
 
-The dispatcher uses a **vtable (function pointer table)** pattern to route `verity_*()` calls to the correct backend. Each backend registers its 17-function vtable at library load time via `__attribute__((constructor))`.
+The dispatcher uses a **vtable (function pointer table)** pattern to route `verity_*()` calls to the correct backend. Each backend registers its 16-function vtable at library load time via `__attribute__((constructor))`.
 
 - `verity_dispatch.c` — core router, handle wrapping/unwrapping, all `verity_*()` implementations
-- `verity_backend.h` — `VerityVtable` struct definition (17 function pointers)
+- `verity_backend.h` — `VerityVtable` struct definition (16 function pointers)
 - `backends/pk_backend.c` / `bb_backend.c` — backend registration stubs
 
 ### Public C API (`core/include/`)
@@ -115,7 +115,7 @@ Note: `prepare` (circuit compilation) is NOT part of the SDK vtable. Compilation
 16  Cleanup      free_buf                                              (buf) → void
 ```
 
-Error codes (shared across all layers): 0=Success, 1=InvalidInput, 2=SchemeReadError, 3=WitnessReadError, 4=ProofError, 5=SerializationError, 6=Utf8Error, 7=FileWriteError, 8=CompilationError, 9=UnknownBackend, 10=OutOfMemory.
+Error codes (shared across all layers): 0=Success, 1=InvalidInput, 2=SchemeReadError, 3=WitnessReadError, 4=ProofError, 5=SerializationError, 6=Utf8Error, 7=FileWriteError, 8=Reserved, 9=UnknownBackend, 10=OutOfMemory.
 
 ### Layer 1: Backend FFI → ProveKit/Barretenberg
 
