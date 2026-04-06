@@ -7,7 +7,7 @@ import kotlin.concurrent.write
 /**
  * Opaque handle to a compiled prover scheme.
  *
- * Created by [Verity.prepare] or [Verity.loadProver].
+ * Created by [Verity.loadProver].
  * Thread-safe: can be reused for concurrent prove calls.
  * Must be [close]d when no longer needed (or use [use]).
  */

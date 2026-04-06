@@ -15,35 +15,6 @@ final class VerityUnitTests: XCTestCase {
         XCTAssertTrue([RuntimeMode.sourceOnly, .native].contains(Verity.runtimeMode))
     }
 
-    func testCircuitLoadFromPath() throws {
-        let directory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-        let file = directory.appendingPathComponent("verity-circuit.json")
-        try Data("{}".utf8).write(to: file)
-        defer { try? FileManager.default.removeItem(at: file) }
-
-        let circuit = try Circuit.load(from: file.path)
-        XCTAssertEqual(circuit.data, Data("{}".utf8))
-    }
-
-    func testCircuitLoadFromURL() throws {
-        let directory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-        let file = directory.appendingPathComponent("verity-circuit-url.json")
-        try Data("{}".utf8).write(to: file)
-        defer { try? FileManager.default.removeItem(at: file) }
-
-        let circuit = try Circuit.load(url: file)
-        XCTAssertEqual(circuit.data, Data("{}".utf8))
-    }
-
-    func testCircuitLoadNonexistentPath() {
-        XCTAssertThrowsError(try Circuit.load(from: "/nonexistent/circuit.json"))
-    }
-
-    func testCircuitFromBytes() {
-        let circuit = Circuit.fromBytes(Data("{}".utf8))
-        XCTAssertEqual(circuit.data, Data("{}".utf8))
-    }
-
     func testWitnessLoadNonexistentPath() {
         XCTAssertThrowsError(try Witness.load(from: "/nonexistent/Prover.toml"))
     }
@@ -86,15 +57,6 @@ final class VerityUnitTests: XCTestCase {
 
     func testVersionIsNotEmpty() {
         XCTAssertFalse(Verity.version.isEmpty)
-    }
-
-    func testPreparedSchemeCloseIsIdempotent() {
-        let scheme = PreparedScheme(
-            prover: ProverScheme(),
-            verifier: VerifierScheme()
-        )
-        scheme.close()
-        scheme.close()
     }
 
     func testClosedSchemeOperationsThrowResourceClosed() {

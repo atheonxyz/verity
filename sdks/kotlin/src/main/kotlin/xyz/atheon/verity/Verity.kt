@@ -9,13 +9,12 @@ import java.util.concurrent.ConcurrentHashMap
  * Use the schemes directly to generate and verify proofs.
  *
  * ```kotlin
- * val verity  = Verity(Backend.PROVEKIT)
- * val circuit = Circuit.load("circuit.json")
- * val witness = Witness.load("Prover.toml")
- * verity.prepare(circuit).use { scheme ->
- *     val proof = scheme.prover.prove(witness)
- *     val valid = scheme.verifier.verify(proof)
- * }
+ * val verity   = Verity(Backend.PROVEKIT)
+ * val prover   = verity.loadProver("prover.pkp")
+ * val verifier = verity.loadVerifier("verifier.pkv")
+ * val witness  = Witness.load("Prover.toml")
+ * val proof    = prover.prove(witness)
+ * val valid    = verifier.verify(proof)
  * ```
  */
 
@@ -34,55 +33,6 @@ class Verity(private val backend: Backend) {
     init {
         ensureInitialized(backend)
     }
-
-    /**
-     * Compile a circuit into prover + verifier schemes (no files written).
-     *
-     * ```kotlin
-     * val circuit = Circuit.load("/path/to/circuit.json")
-     * val scheme  = verity.prepare(circuit)
-     * ```
-     *
-     * @param circuit A parsed [Circuit] (loaded via [Circuit.load]).
-     * @return A [PreparedScheme] containing both prover and verifier handles.
-     */
-    @Throws(VerityException::class)
-    fun prepare(circuit: Circuit): PreparedScheme {
-        val (path, isTemporary) = circuit.resolvePath()
-        require(path.isNotEmpty()) { "circuit path cannot be empty" }
-        try {
-            val handles = nativePrepare(backend.code, path)
-            val prover: ProverScheme
-            val verifier: VerifierScheme
-            try {
-                prover = ProverScheme(handles[0])
-            } catch (e: Throwable) {
-                freeProver(handles[0])
-                freeVerifier(handles[1])
-                throw e
-            }
-            try {
-                verifier = VerifierScheme(handles[1])
-            } catch (e: Throwable) {
-                prover.close()
-                freeVerifier(handles[1])
-                throw e
-            }
-            return PreparedScheme(prover = prover, verifier = verifier)
-        } finally {
-            if (isTemporary) java.io.File(path).delete()
-        }
-    }
-
-    /**
-     * Convenience: compile a circuit from a file path string.
-     *
-     * @param circuit Path to compiled circuit (ACIR JSON from `nargo compile`).
-     * @return A [PreparedScheme] containing both prover and verifier handles.
-     */
-    @Throws(VerityException::class)
-    fun prepare(circuit: String): PreparedScheme =
-        prepare(Circuit.load(circuit))
 
     // -- Load from file --
 
@@ -227,9 +177,6 @@ class Verity(private val backend: Backend) {
 
         @JvmStatic
         private external fun nativeInit(backend: Int): Int
-
-        @JvmStatic
-        private external fun nativePrepare(backend: Int, circuitPath: String): LongArray
 
         @JvmStatic
         private external fun nativeProveToml(proverHandle: Long, inputPath: String): ByteArray

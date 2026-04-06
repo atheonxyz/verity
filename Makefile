@@ -24,19 +24,27 @@ core-all: core-ios core-android core-wasm core-native
 
 .PHONY: test-swift test-kotlin test-js test-all
 
-test-swift: core-ios
+test-swift: core-ios test-fixtures
 	cd sdks/swift && xcodebuild test \
 		-scheme Verity \
 		-destination 'platform=iOS Simulator,name=iPhone 16' \
 		-skipPackagePluginValidation
 
-test-kotlin: core-android
+test-kotlin: core-android test-fixtures
 	cd sdks/kotlin && ./gradlew connectedAndroidTest
 
 test-js: core-wasm core-native
 	cd sdks/js && npm test
 
-test-all: test-swift test-kotlin test-js
+test-all: test-fixtures test-swift test-kotlin test-js
+
+# ── Fixture generation (for tests) ────────────────────────────────────
+
+.PHONY: test-fixtures
+
+test-fixtures: core-native
+	@echo "Generating test fixtures..."
+	bash tests/gen-fixtures.sh
 
 # ── Releases ───────────────────────────────────────────────────────────
 

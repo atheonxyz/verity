@@ -20,12 +20,14 @@ sdks/your-platform/
 Your SDK must expose this interface (adapted to language idioms):
 
 - `Verity(backend)` — constructor/factory
-- `prepare(circuit) → PreparedScheme` — compile circuit
+- `loadProver(path | bytes) → ProverScheme` — load pre-compiled prover
+- `loadVerifier(path | bytes) → VerifierScheme` — load pre-compiled verifier
 - `prove(prover, inputs) → bytes` — generate proof
 - `verify(verifier, proof) → bool` — verify proof
-- `loadProver(path | bytes) → ProverScheme`
-- `loadVerifier(path | bytes) → VerifierScheme`
 - Scheme: `save(path)`, `serialize() → bytes`, `dispose()`
+
+> **Note:** The SDK does not expose circuit compilation (`prepare`).
+> Users obtain pre-compiled prover/verifier schemes via the CLI tool or downloads.
 
 ### 3. Create FFI bridge
 

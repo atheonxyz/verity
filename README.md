@@ -3,13 +3,11 @@
 [![CI](https://github.com/atheonxyz/verity/actions/workflows/ci.yml/badge.svg)](https://github.com/atheonxyz/verity/actions/workflows/ci.yml)
 [![Security](https://github.com/atheonxyz/verity/actions/workflows/security.yml/badge.svg)](https://github.com/atheonxyz/verity/actions/workflows/security.yml)
 [![Nightly](https://github.com/atheonxyz/verity/actions/workflows/nightly.yml/badge.svg)](https://github.com/atheonxyz/verity/actions/workflows/nightly.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-
 Zero-knowledge proof SDK for **iOS**, **Android**, and **JavaScript**. One API, multiple proving backends, every platform.
 
 ## Features
 
-- **Unified API** -- `prepare`, `prove`, `verify` across all platforms
+- **Unified API** -- `load`, `prove`, `verify` across all platforms
 - **Pluggable backends** -- switch between ProveKit and Barretenberg with one line
 - **Offline key management** -- save/load/serialize prover and verifier schemes
 - **Thread-safe** -- safe to use from multiple threads and async contexts
@@ -23,7 +21,7 @@ Zero-knowledge proof SDK for **iOS**, **Android**, and **JavaScript**. One API, 
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/atheonxyz/verity", from: "0.2.0")
+    .package(url: "https://github.com/atheonxyz/verity", from: "0.3.0")
 ],
 targets: [
     .target(name: "MyApp", dependencies: [
@@ -37,7 +35,7 @@ targets: [
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("com.atheon:verity:0.2.0")
+    implementation("xyz.atheon:verity:0.3.0")
 }
 ```
 
@@ -54,12 +52,12 @@ npm install @atheon/verity
 ```swift
 import Verity
 
-let verity  = try Verity(backend: .provekit)
-let circuit = try Circuit.load(from: "circuit.json")
-let witness = try Witness.load(from: "Prover.toml")
-let scheme  = try verity.prepare(circuit: circuit)
-let proof   = try scheme.prover.prove(witness: witness)
-let valid   = try scheme.verifier.verify(proof: proof)
+let verity   = try Verity(backend: .provekit)
+let prover   = try verity.loadProver(from: "prover.pkp")
+let verifier = try verity.loadVerifier(from: "verifier.pkv")
+let witness  = try Witness.load(from: "Prover.toml")
+let proof    = try prover.prove(witness: witness)
+let valid    = try verifier.verify(proof: proof)
 
 print(proof.hexPreview())  // "a1b2c3d4..."
 ```
@@ -67,15 +65,18 @@ print(proof.hexPreview())  // "a1b2c3d4..."
 ### Kotlin
 
 ```kotlin
-import com.atheon.verity.*
+import xyz.atheon.verity.*
 
-val verity  = Verity(Backend.PROVEKIT)
-val circuit = Circuit.load("circuit.json")
-val witness = Witness.load("Prover.toml")
-verity.prepare(circuit).use { scheme ->
-    val proof = scheme.prover.prove(witness)
-    val valid = scheme.verifier.verify(proof)
-    println(proof.hexPreview())  // "a1b2c3d4..."
+val verity   = Verity(Backend.PROVEKIT)
+val prover   = verity.loadProver("prover.pkp")
+val verifier = verity.loadVerifier("verifier.pkv")
+val witness  = Witness.load("Prover.toml")
+prover.use { p ->
+    verifier.use { v ->
+        val proof = p.prove(witness)
+        val valid = v.verify(proof)
+        println(proof.hexPreview())  // "a1b2c3d4..."
+    }
 }
 ```
 
@@ -84,11 +85,13 @@ verity.prepare(circuit).use { scheme ->
 ```typescript
 import { Verity, Backend } from '@atheon/verity';
 
-const verity = await Verity.create(Backend.Barretenberg);
-const scheme = await verity.prepare(circuitJSON);
-const proof  = await scheme.prover.prove({ a: 1, b: 2 });
-const valid  = await scheme.verifier.verify(proof);
-scheme.dispose();
+const verity   = await Verity.create(Backend.Barretenberg);
+const prover   = await verity.loadProver(proverBytes);
+const verifier = await verity.loadVerifier(verifierBytes);
+const proof    = await verity.prove(prover, { a: 1, b: 2 });
+const valid    = await verity.verify(verifier, proof);
+prover.dispose();
+verifier.dispose();
 ```
 
 ## API Overview
@@ -96,14 +99,12 @@ scheme.dispose();
 | Method | Description |
 |--------|-------------|
 | `Verity(backend:)` | Create a factory with the specified backend |
-| `verity.prepare(circuit:)` | Compile a circuit into prover + verifier schemes |
+| `verity.loadProver(from:)` | Load a prover scheme from file or bytes |
+| `verity.loadVerifier(from:)` | Load a verifier scheme from file or bytes |
 | `prover.prove(witness:)` | Generate a proof from witness values |
 | `verifier.verify(proof:)` | Verify a proof -- returns `true` / `false` |
-| `Circuit.load(from:)` | Load a compiled circuit from a file |
 | `Witness.load(from:)` | Load witness values from a TOML file |
 | `Witness(["x": "5"])` | Create witness from a dictionary |
-| `verity.loadProver(from:)` | Load a saved prover scheme from file or bytes |
-| `verity.loadVerifier(from:)` | Load a saved verifier scheme from file or bytes |
 | `scheme.save(to:)` | Save a scheme to disk |
 | `scheme.serialize()` | Serialize a scheme to bytes |
 
@@ -111,8 +112,8 @@ scheme.dispose();
 
 | Backend | Enum | Trusted Setup | Proof Size |
 |---------|------|---------------|------------|
-| ProveKit (WHIR) | `.provekit` / `PROVEKIT` / `ProveKit` | None (transparent) | Variable (~KBs) |
-| Barretenberg (UltraHonk) | `.barretenberg` / `BARRETENBERG` / `Barretenberg` | Universal (auto) | Several KB |
+| ProveKit (WHIR) | `.provekit` (Swift) / `PROVEKIT` (Kotlin) / `ProveKit` (JS) | None (transparent) | Variable (~KBs) |
+| Barretenberg (UltraHonk) | `.barretenberg` (Swift) / `BARRETENBERG` (Kotlin) / `Barretenberg` (JS) | Universal (auto) | Several KB |
 
 Switching backends changes one line. The rest of your code stays identical.
 
@@ -125,6 +126,7 @@ verity/
 │   ├── swift/      # iOS / macOS SDK (Swift Package Manager)
 │   ├── kotlin/     # Android SDK (Gradle / Maven)
 │   └── js/         # JS SDK (npm, Node + browser)
+├── tests/          # Fixture generation tools
 ├── examples/       # Platform-specific demo apps
 ├── circuits/       # Noir test circuits and fixtures
 └── docs/           # Architecture, guides, roadmap

@@ -20,7 +20,7 @@ Complete the N-API (Node.js) and WASM (browser) backend bindings. The TypeScript
 
 ### Async / Await APIs
 Proof generation is CPU-heavy and blocks the calling thread. Add async wrappers:
-- **Swift**: `async throws` variants of `prepare`, `prove`, `verify`
+- **Swift**: `async throws` variants of `prove`, `verify`, `loadProver`, `loadVerifier`
 - **Kotlin**: `suspend` function variants with coroutine support
 - **JS**: Already async by design
 

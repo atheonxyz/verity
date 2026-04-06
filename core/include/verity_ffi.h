@@ -9,11 +9,12 @@
  * call these functions. Backend-specific symbols are in verity_ffi_raw.h.
  *
  * Typical workflow:
- *   1. verity_init()      — initialize the backend (once)
- *   2. verity_prepare()   — compile a circuit into prover + verifier
- *   3. verity_prove_*()   — generate a proof
- *   4. verity_verify()    — verify the proof
- *   5. verity_free_*()    — clean up handles and buffers
+ *   1. verity_init()           — initialize the backend (once)
+ *   2. verity_load_prover()    — load a pre-compiled prover scheme
+ *      verity_load_verifier()  — load a pre-compiled verifier scheme
+ *   3. verity_prove_*()        — generate a proof
+ *   4. verity_verify()         — verify the proof
+ *   5. verity_free_*()         — clean up handles and buffers
  */
 
 #include <stdint.h>
@@ -51,7 +52,7 @@ typedef enum {
     VERITY_SERIALIZATION_ERROR = 5,  /**< Serialization/deserialization error */
     VERITY_UTF8_ERROR          = 6,  /**< String contains invalid UTF-8 */
     VERITY_FILE_WRITE_ERROR    = 7,  /**< Failed to write file */
-    VERITY_COMPILATION_ERROR   = 8,  /**< Circuit compilation failed */
+    VERITY_COMPILATION_ERROR   = 8,  /**< Reserved (formerly circuit compilation) */
     VERITY_UNKNOWN_BACKEND     = 9,  /**< Unknown or unregistered backend */
     VERITY_OUT_OF_MEMORY       = 10, /**< Memory allocation failed */
 } VerityError;
@@ -69,10 +70,10 @@ typedef struct {
     int       backend; /**< Backend that allocated this buffer (for correct deallocation) */
 } VerityBuf;
 
-/** Opaque prover handle. Created by verity_prepare() or verity_load_prover(). */
+/** Opaque prover handle. Created by verity_load_prover(). */
 typedef struct VerityProver VerityProver;
 
-/** Opaque verifier handle. Created by verity_prepare() or verity_load_verifier(). */
+/** Opaque verifier handle. Created by verity_load_verifier(). */
 typedef struct VerityVerifier VerityVerifier;
 
 /* ── Lifecycle ────────────────────────────────────────────────────────── */
@@ -88,27 +89,6 @@ typedef struct VerityVerifier VerityVerifier;
  * @return VERITY_SUCCESS on success, or an error code.
  */
 int verity_init(VerityBackend backend);
-
-/* ── Prepare ──────────────────────────────────────────────────────────── */
-
-/**
- * Compile a circuit into prover and verifier handles.
- *
- * No files are written — both schemes live in memory.
- * The caller owns both handles and must free them with
- * verity_free_prover() and verity_free_verifier().
- * Thread safety: safe to call concurrently with distinct outputs.
- *
- * @param backend       The backend to use.
- * @param circuit_path  Path to compiled circuit (ACIR JSON from `nargo compile`).
- * @param out_prover    Receives the prover handle on success.
- * @param out_verifier  Receives the verifier handle on success.
- * @return VERITY_SUCCESS on success, or an error code.
- */
-int verity_prepare(VerityBackend backend,
-                   const char *circuit_path,
-                   VerityProver **out_prover,
-                   VerityVerifier **out_verifier);
 
 /* ── Load ─────────────────────────────────────────────────────────────── */
 
@@ -169,7 +149,7 @@ int verity_load_verifier_bytes(VerityBackend backend,
 /**
  * Save a prover scheme to a file for later reuse via verity_load_prover().
  *
- * @param prover  Prover handle from verity_prepare() or verity_load_prover().
+ * @param prover  Prover handle from verity_load_prover().
  * @param path    Destination file path. Parent directory must exist.
  * @return VERITY_SUCCESS on success, or an error code.
  */
@@ -178,7 +158,7 @@ int verity_save_prover(const VerityProver *prover, const char *path);
 /**
  * Save a verifier scheme to a file for later reuse via verity_load_verifier().
  *
- * @param verifier  Verifier handle from verity_prepare() or verity_load_verifier().
+ * @param verifier  Verifier handle from verity_load_verifier().
  * @param path      Destination file path. Parent directory must exist.
  * @return VERITY_SUCCESS on success, or an error code.
  */
@@ -214,7 +194,7 @@ int verity_serialize_verifier(const VerityVerifier *verifier, VerityBuf *out);
  *
  * Thread safety: safe to call concurrently with distinct prover handles.
  *
- * @param prover     Prover handle from verity_prepare() or verity_load_prover().
+ * @param prover     Prover handle from verity_load_prover().
  * @param toml_path  Path to TOML input file.
  * @param out_proof  Receives proof bytes. Caller must free with verity_free_buf().
  * @return VERITY_SUCCESS on success, or an error code.
@@ -231,7 +211,7 @@ int verity_prove_toml(const VerityProver *prover,
  *
  * Thread safety: safe to call concurrently with distinct prover handles.
  *
- * @param prover       Prover handle from verity_prepare() or verity_load_prover().
+ * @param prover       Prover handle from verity_load_prover().
  * @param inputs_json  JSON string of inputs (e.g., {"x": "5", "y": "10"}).
  * @param out_proof    Receives proof bytes. Caller must free with verity_free_buf().
  * @return VERITY_SUCCESS on success, or an error code.
@@ -247,7 +227,7 @@ int verity_prove_json(const VerityProver *prover,
  *
  * Thread safety: safe to call concurrently with distinct verifier handles.
  *
- * @param verifier   Verifier handle from verity_prepare() or verity_load_verifier().
+ * @param verifier   Verifier handle from verity_load_verifier().
  * @param proof_ptr  Pointer to proof bytes (from verity_prove_*).
  * @param proof_len  Length of proof bytes.
  * @return VERITY_SUCCESS (0) if proof is valid,

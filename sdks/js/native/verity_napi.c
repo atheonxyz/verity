@@ -17,7 +17,7 @@ static napi_value throw_verity_error(napi_env env, int code) {
         case VERITY_SCHEME_READ_ERROR:  msg = "Scheme read error"; break;
         case VERITY_PROOF_ERROR:        msg = "Proof error"; break;
         case VERITY_SERIALIZATION_ERROR: msg = "Serialization error"; break;
-        case VERITY_COMPILATION_ERROR:  msg = "Compilation error"; break;
+        /* VERITY_COMPILATION_ERROR (8) is reserved */
         case VERITY_UNKNOWN_BACKEND:    msg = "Unknown backend"; break;
         default:                        msg = "FFI error"; break;
     }
@@ -48,7 +48,7 @@ static napi_value napi_verity_init(napi_env env, napi_callback_info info) {
 static napi_value init_module(napi_env env, napi_value exports) {
     napi_property_descriptor props[] = {
         { "init", NULL, napi_verity_init, NULL, NULL, NULL, napi_default, NULL },
-        /* TODO: Add prepare, prove, verify, load, save, serialize, free */
+        /* TODO: Add prove, verify, load, save, serialize, free */
     };
 
     napi_define_properties(env, exports, sizeof(props) / sizeof(props[0]), props);

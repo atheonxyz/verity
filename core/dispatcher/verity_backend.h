@@ -17,7 +17,6 @@ typedef struct {
 /// Function pointer table that each backend implements.
 typedef struct {
     int  (*init)(void);
-    int  (*prepare)(const char *circuit_path, void **out_prover, void **out_verifier);
     int  (*load_prover)(const char *path, void **out);
     int  (*load_verifier)(const char *path, void **out);
     int  (*load_prover_bytes)(const uint8_t *ptr, uintptr_t len, void **out);

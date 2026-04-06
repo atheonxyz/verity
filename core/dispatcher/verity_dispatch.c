@@ -26,7 +26,7 @@ void verity_register_backend(VerityBackend backend, const VerityVtable *vtable) 
     if (!vtable) return;
 
     // Validate that all required function pointers are non-NULL.
-    if (!vtable->init || !vtable->prepare ||
+    if (!vtable->init ||
         !vtable->load_prover || !vtable->load_verifier ||
         !vtable->load_prover_bytes || !vtable->load_verifier_bytes ||
         !vtable->save_prover || !vtable->save_verifier ||
@@ -64,39 +64,6 @@ int verity_init(VerityBackend backend) {
     const VerityVtable *vt = get_vt(backend);
     if (!vt) return VERITY_UNKNOWN_BACKEND;
     return vt->init();
-}
-
-// ── Prepare ────────────────────────────────────────────────────────────────
-
-int verity_prepare(VerityBackend backend,
-                   const char *circuit_path,
-                   VerityProver **out_prover,
-                   VerityVerifier **out_verifier) {
-    if (!out_prover || !out_verifier) return VERITY_INVALID_INPUT;
-    if (!circuit_path) return VERITY_INVALID_INPUT;
-    *out_prover = NULL;
-    *out_verifier = NULL;
-
-    const VerityVtable *vt = get_vt(backend);
-    if (!vt) return VERITY_UNKNOWN_BACKEND;
-
-    void *raw_prover = NULL;
-    void *raw_verifier = NULL;
-    int code = vt->prepare(circuit_path, &raw_prover, &raw_verifier);
-    if (code != VERITY_SUCCESS) return code;
-
-    *out_prover = wrap_prover(backend, raw_prover);
-    *out_verifier = wrap_verifier(backend, raw_verifier);
-
-    if (!*out_prover || !*out_verifier) {
-        if (*out_prover)  { free(*out_prover);  *out_prover = NULL; }
-        if (*out_verifier) { free(*out_verifier); *out_verifier = NULL; }
-        vt->free_prover(raw_prover);
-        vt->free_verifier(raw_verifier);
-        return VERITY_OUT_OF_MEMORY;
-    }
-
-    return VERITY_SUCCESS;
 }
 
 // ── Load ───────────────────────────────────────────────────────────────────

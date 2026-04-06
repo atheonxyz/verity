@@ -18,9 +18,6 @@ sealed class VerityException(message: String, cause: Throwable? = null) : Except
     /** Serialization error. The data may be corrupted or from an incompatible version. */
     class SerializationError : VerityException("Serialization error. Data may be corrupted or from an incompatible version.")
 
-    /** Circuit compilation failed. Ensure the circuit JSON was produced by `nargo compile`. */
-    class CompilationFailed(detail: String) : VerityException("Compilation failed: $detail. Ensure the circuit JSON was produced by `nargo compile`.")
-
     /** Unknown backend. Use `Backend.PROVEKIT` or `Backend.BARRETENBERG`. */
     class UnknownBackend : VerityException("Unknown backend. Use Backend.PROVEKIT or Backend.BARRETENBERG.")
 
@@ -43,7 +40,7 @@ sealed class VerityException(message: String, cause: Throwable? = null) : Except
             5 -> SerializationError()
             6 -> InvalidInput("string contains invalid UTF-8")
             7 -> InvalidInput("file write error — check that the destination directory exists and is writable")
-            8 -> CompilationFailed("circuit compilation error")
+            8 -> FfiError(8) // reserved (formerly compilation error)
             9 -> UnknownBackend()
             10 -> OutOfMemory()
             else -> FfiError(code)

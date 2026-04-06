@@ -8,6 +8,7 @@ export enum VerityErrorCode {
   SERIALIZATION_ERROR = 5,
   UTF8_ERROR = 6,
   FILE_WRITE_ERROR = 7,
+  /** @deprecated Reserved (formerly circuit compilation). */
   COMPILATION_ERROR = 8,
   UNKNOWN_BACKEND = 9,
   BACKEND_UNAVAILABLE = 10,
@@ -45,7 +46,7 @@ export class VerityError extends Error {
       case VerityErrorCode.FILE_WRITE_ERROR:
         return "File write error";
       case VerityErrorCode.COMPILATION_ERROR:
-        return "Circuit compilation error";
+        return "Reserved error code";
       case VerityErrorCode.UNKNOWN_BACKEND:
         return "Unknown or unregistered backend";
       case VerityErrorCode.BACKEND_UNAVAILABLE:

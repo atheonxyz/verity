@@ -36,7 +36,6 @@ let bundledCircuits = [
 // MARK: - Proof Phase
 
 enum ProofPhase: String, Sendable {
-    case preparing = "Prepare"
     case loading = "Load"
     case proving = "Prove"
     case verifying = "Verify"
@@ -91,16 +90,15 @@ struct ProofResult: Sendable {
     let circuit: DemoCircuit
     let backend: Backend
     let proof: Proof
-    let prepareTime: TimeInterval
+    let loadTime: TimeInterval
     let proveTime: TimeInterval
     let verifyTime: TimeInterval
     let isValid: Bool
-    let usedPrecompiled: Bool
     let memoryBefore: MemorySnapshot
     let memoryAfter: MemorySnapshot
     let phases: [PhaseLogEntry]
 
-    var totalTime: TimeInterval { prepareTime + proveTime + verifyTime }
+    var totalTime: TimeInterval { loadTime + proveTime + verifyTime }
     var proofHex: String { proof.hexPreview(maxBytes: 80) }
     var proofSize: Int { proof.size }
     var memoryDeltaMB: Double { memoryAfter.processMemoryMB - memoryBefore.processMemoryMB }

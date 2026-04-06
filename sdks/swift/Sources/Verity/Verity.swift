@@ -26,34 +26,18 @@ public enum RuntimeMode: String, Sendable {
     case native
 }
 
-/// Result of ``Verity/prepare(circuit:)``.
-///
-/// Both schemes are independent and can be passed to different tasks.
-/// Memory is automatically freed when both schemes are deallocated.
-public struct PreparedScheme: Sendable {
-    /// Prover scheme — call ``ProverScheme/prove(witness:)`` to generate proofs.
-    public let prover: ProverScheme
-    /// Verifier scheme — call ``VerifierScheme/verify(proof:)`` to check proofs.
-    public let verifier: VerifierScheme
-
-    public func close() {
-        prover.close()
-        verifier.close()
-    }
-}
-
 /// Verity — zero-knowledge proof SDK.
 ///
-/// `Verity` is a factory for creating prover and verifier schemes.
+/// `Verity` is a factory for loading prover and verifier schemes.
 /// Use the schemes directly to generate and verify proofs.
 ///
 /// ```swift
-/// let verity  = try Verity(backend: .provekit)
-/// let circuit = try Circuit.load(from: "circuit.json")
-/// let witness = try Witness.load(from: "Prover.toml")
-/// let scheme  = try verity.prepare(circuit: circuit)
-/// let proof   = try scheme.prover.prove(witness: witness)
-/// let valid   = try scheme.verifier.verify(proof: proof)
+/// let verity   = try Verity(backend: .provekit)
+/// let prover   = try verity.loadProver(from: "prover.pkp")
+/// let verifier = try verity.loadVerifier(from: "verifier.pkv")
+/// let witness  = try Witness.load(from: "Prover.toml")
+/// let proof    = try prover.prove(witness: witness)
+/// let valid    = try verifier.verify(proof: proof)
 /// ```
 public final class Verity: @unchecked Sendable {
     private static let lock = NSLock()
@@ -102,38 +86,6 @@ public final class Verity: @unchecked Sendable {
             return nil
         }
         return String(decoding: UnsafeBufferPointer(start: ptr, count: Int(buf.len)), as: UTF8.self)
-    }
-
-    // MARK: - Prepare
-
-    /// Compile a circuit into prover and verifier schemes.
-    ///
-    /// No files are written — both schemes live in memory.
-    ///
-    /// ```swift
-    /// let circuit = try Circuit.load(from: "circuit.json")
-    /// let scheme  = try verity.prepare(circuit: circuit)
-    /// ```
-    ///
-    /// - Parameter circuit: A parsed ``Circuit`` (loaded via ``Circuit/load(from:)``).
-    /// - Returns: A ``PreparedScheme`` containing both prover and verifier.
-    public func prepare(circuit: Circuit) throws -> PreparedScheme {
-        let (path, isTemporary) = try circuit.resolvePath()
-        defer { if isTemporary { try? FileManager.default.removeItem(atPath: path) } }
-
-        var proverHandle: OpaquePointer?
-        var verifierHandle: OpaquePointer?
-        let code = verity_prepare(backend.cValue, path, &proverHandle, &verifierHandle)
-
-        guard code == 0, let pk = proverHandle, let vk = verifierHandle else {
-            if let p = proverHandle { verity_free_prover(p) }
-            if let v = verifierHandle { verity_free_verifier(v) }
-            throw VerityError.fromCode(code)
-        }
-
-        let prover = ProverScheme(handle: pk)
-        let verifier = VerifierScheme(handle: vk)
-        return PreparedScheme(prover: prover, verifier: verifier)
     }
 
     // MARK: - Load
@@ -231,7 +183,7 @@ public final class Verity: @unchecked Sendable {
     /// Convenience method — equivalent to `prover.prove(witness: witness)`.
     ///
     /// - Parameters:
-    ///   - prover: A ``ProverScheme`` from ``prepare(circuit:)`` or ``loadProver(from:)``.
+    ///   - prover: A ``ProverScheme`` from ``loadProver(from:)``.
     ///   - witness: A ``Witness`` containing the circuit's private inputs.
     /// - Returns: A ``Proof`` containing the proof bytes.
     public func prove(with prover: ProverScheme, witness: Witness) throws -> Proof {
@@ -243,7 +195,7 @@ public final class Verity: @unchecked Sendable {
     /// Convenience method — equivalent to `verifier.verify(proof: proof)`.
     ///
     /// - Parameters:
-    ///   - verifier: A ``VerifierScheme`` from ``prepare(circuit:)`` or ``loadVerifier(from:)``.
+    ///   - verifier: A ``VerifierScheme`` from ``loadVerifier(from:)``.
     ///   - proof: A ``Proof`` from ``ProverScheme/prove(witness:)``.
     /// - Returns: `true` if proof is valid, `false` if mathematically invalid.
     public func verify(with verifier: VerifierScheme, proof: Proof) throws -> Bool {

@@ -3,7 +3,7 @@ import VerityDispatch
 
 /// Opaque handle to a compiled verifier scheme.
 ///
-/// Created by ``Verity/prepare(circuit:)`` or ``Verity/loadVerifier(from:)``.
+/// Created by ``Verity/loadVerifier(from:)``.
 /// Automatically freed on deinit. Can be reused for multiple verify calls.
 ///
 /// Thread-safe: all operations are internally synchronized.
