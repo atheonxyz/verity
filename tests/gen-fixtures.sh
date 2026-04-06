@@ -18,12 +18,13 @@ if [ ! -f "$GEN_FIXTURES" ]; then
     echo "Building gen_fixtures..."
     mkdir -p "$REPO_ROOT/core/target"
     # Link against the native-built static libraries
+    if [ "$(uname)" = "Darwin" ]; then CXXLIB="-lc++"; else CXXLIB="-lstdc++"; fi
     echo "Compiling: cc -o $GEN_FIXTURES $SCRIPT_DIR/gen_fixtures.c ..."
     cc -o "$GEN_FIXTURES" \
         "$SCRIPT_DIR/gen_fixtures.c" \
         -L"$REPO_ROOT/core/target/release" \
         -lverity_provekit -lverity_barretenberg \
-        -lpthread -ldl -lm -lc++ \
+        -lpthread -ldl -lm $CXXLIB \
         || {
             echo "Error: Failed to build gen_fixtures."
             echo "  - Ensure core-native has been built (make core-native)"
