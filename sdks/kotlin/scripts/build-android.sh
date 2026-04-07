@@ -166,6 +166,10 @@ for entry in "${TARGETS[@]}"; do
         $LINK_LIBS \
         -llog -lm -lc -lc++_static -lc++abi
 
+    # Strip debug symbols to reduce .so size
+    echo "  Stripping debug symbols..."
+    "${TOOLCHAIN}/bin/llvm-strip" --strip-all "$OUTPUT_DIR/$ABI/libverity_jni.so"
+
     rm -rf "$WORK_DIR"
     echo "  -> $OUTPUT_DIR/$ABI/libverity_jni.so"
     echo ""

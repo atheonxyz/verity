@@ -1,16 +1,17 @@
 VERSION := $(shell cat VERSION)
 PROVEKIT_PATH ?= ../provekit
 BACKENDS ?=
+CARGO_PROFILE ?= release-mobile
 
 # ── Core builds ────────────────────────────────────────────────────────
 
 .PHONY: core-ios core-android core-wasm core-native core-all
 
 core-ios:
-	bash core/build/build-ios.sh $(PROVEKIT_PATH) $(if $(BACKENDS),--backends $(BACKENDS))
+	CARGO_PROFILE=$(CARGO_PROFILE) bash core/build/build-ios.sh $(PROVEKIT_PATH) $(if $(BACKENDS),--backends $(BACKENDS))
 
 core-android:
-	bash core/build/build-android.sh $(PROVEKIT_PATH) $(if $(BACKENDS),--backends $(BACKENDS))
+	CARGO_PROFILE=$(CARGO_PROFILE) bash core/build/build-android.sh $(PROVEKIT_PATH) $(if $(BACKENDS),--backends $(BACKENDS))
 
 core-wasm:
 	bash core/build/build-wasm.sh

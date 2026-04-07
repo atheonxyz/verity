@@ -139,14 +139,36 @@ class MainActivity : AppCompatActivity() {
                 val inputPath = copyAssetToCache("${circuit.assetDir}/Prover.toml")
                 val memBefore = nativeHeapMB()
 
-                // -- Load --
-                updateStatus("Loading ${circuit.name} ($bName)...")
-                val loadStart = System.nanoTime()
-                val proverPath = copyAssetToCache("${circuit.assetDir}/prover.pkp")
-                val verifierPath = copyAssetToCache("${circuit.assetDir}/verifier.pkv")
-                val prover = verity.loadProver(proverPath)
-                val verifier = verity.loadVerifier(verifierPath)
-                val loadMs = (System.nanoTime() - loadStart) / 1_000_000
+                // -- Prepare or Load --
+                val prepareStart = System.nanoTime()
+                var prover: ProverScheme
+                var verifier: VerifierScheme
+                var usedPrecompiled = false
+
+                if (usePrecompiled && backend == Backend.PROVEKIT) {
+                    updateStatus("Loading precompiled ${circuit.name} ($bName)...")
+                    try {
+                        val proverPath = copyAssetToCache("${circuit.assetDir}/prover.pkp")
+                        val verifierPath = copyAssetToCache("${circuit.assetDir}/verifier.pkv")
+                        prover = verity.loadProver(proverPath)
+                        verifier = verity.loadVerifier(verifierPath)
+                        usedPrecompiled = true
+                    } catch (e: Exception) {
+                        android.util.Log.w("VerityDemo", "Precompiled load failed, falling back to prepare", e)
+                        updateStatus("Preparing ${circuit.name} ($bName)...")
+                        val circuitPath = copyAssetToCache("${circuit.assetDir}/circuit.json")
+                        val prepared = verity.prepare(circuitPath)
+                        prover = prepared.prover
+                        verifier = prepared.verifier
+                    }
+                } else {
+                    updateStatus("Preparing ${circuit.name} ($bName)...")
+                    val circuitPath = copyAssetToCache("${circuit.assetDir}/circuit.json")
+                    val prepared = verity.prepare(circuitPath)
+                    prover = prepared.prover
+                    verifier = prepared.verifier
+                }
+                val prepareMs = (System.nanoTime() - prepareStart) / 1_000_000
                 proverScheme = prover
                 verifierScheme = verifier
 
@@ -591,7 +613,10 @@ class MainActivity : AppCompatActivity() {
             t.message ?: "Unknown error"
     }
 
-    // -- Asset copy --
+    // -- Asset helpers --
+
+    private fun loadAssetBytes(assetPath: String): ByteArray =
+        assets.open(assetPath).use { it.readBytes() }
 
     private fun copyAssetToCache(assetPath: String): String {
         val outFile = File(cacheDir, assetPath.replace("/", "_"))
