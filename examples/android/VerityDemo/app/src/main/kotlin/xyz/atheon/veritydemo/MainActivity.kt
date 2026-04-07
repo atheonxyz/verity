@@ -148,10 +148,10 @@ class MainActivity : AppCompatActivity() {
                 if (usePrecompiled && backend == Backend.PROVEKIT) {
                     updateStatus("Loading precompiled ${circuit.name} ($bName)...")
                     try {
-                        val proverPath = copyAssetToCache("${circuit.assetDir}/prover.pkp")
-                        val verifierPath = copyAssetToCache("${circuit.assetDir}/verifier.pkv")
-                        prover = verity.loadProver(proverPath)
-                        verifier = verity.loadVerifier(verifierPath)
+                        val proverBytes = loadAssetBytes("${circuit.assetDir}/prover.pkp")
+                        val verifierBytes = loadAssetBytes("${circuit.assetDir}/verifier.pkv")
+                        prover = verity.loadProver(data = proverBytes)
+                        verifier = verity.loadVerifier(data = verifierBytes)
                         usedPrecompiled = true
                     } catch (e: Exception) {
                         android.util.Log.w("VerityDemo", "Precompiled load failed, falling back to prepare", e)
