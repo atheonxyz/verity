@@ -19,7 +19,7 @@ DISPATCHER_DIR="$CORE_DIR/dispatcher"
 INCLUDE_DIR="$CORE_DIR/include"
 JNI_DIR="$SDK_DIR/src/main/jni"
 OUTPUT_DIR="$SDK_DIR/src/main/jniLibs"
-CARGO_PROFILE="${CARGO_PROFILE:-release}"
+CARGO_PROFILE="${CARGO_PROFILE:-release-mobile}"
 
 # Android NDK — auto-detect or use env var
 if [ -z "${ANDROID_NDK_HOME:-}" ]; then

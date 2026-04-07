@@ -139,36 +139,14 @@ class MainActivity : AppCompatActivity() {
                 val inputPath = copyAssetToCache("${circuit.assetDir}/Prover.toml")
                 val memBefore = nativeHeapMB()
 
-                // -- Prepare or Load --
-                val prepareStart = System.nanoTime()
-                var prover: ProverScheme
-                var verifier: VerifierScheme
-                var usedPrecompiled = false
-
-                if (usePrecompiled && backend == Backend.PROVEKIT) {
-                    updateStatus("Loading precompiled ${circuit.name} ($bName)...")
-                    try {
-                        val proverBytes = loadAssetBytes("${circuit.assetDir}/prover.pkp")
-                        val verifierBytes = loadAssetBytes("${circuit.assetDir}/verifier.pkv")
-                        prover = verity.loadProver(data = proverBytes)
-                        verifier = verity.loadVerifier(data = verifierBytes)
-                        usedPrecompiled = true
-                    } catch (e: Exception) {
-                        android.util.Log.w("VerityDemo", "Precompiled load failed, falling back to prepare", e)
-                        updateStatus("Preparing ${circuit.name} ($bName)...")
-                        val circuitPath = copyAssetToCache("${circuit.assetDir}/circuit.json")
-                        val prepared = verity.prepare(circuitPath)
-                        prover = prepared.prover
-                        verifier = prepared.verifier
-                    }
-                } else {
-                    updateStatus("Preparing ${circuit.name} ($bName)...")
-                    val circuitPath = copyAssetToCache("${circuit.assetDir}/circuit.json")
-                    val prepared = verity.prepare(circuitPath)
-                    prover = prepared.prover
-                    verifier = prepared.verifier
-                }
-                val prepareMs = (System.nanoTime() - prepareStart) / 1_000_000
+                // -- Load precompiled schemes --
+                updateStatus("Loading ${circuit.name} ($bName)...")
+                val loadStart = System.nanoTime()
+                val proverBytes = loadAssetBytes("${circuit.assetDir}/prover.pkp")
+                val verifierBytes = loadAssetBytes("${circuit.assetDir}/verifier.pkv")
+                val prover = verity.loadProver(data = proverBytes)
+                val verifier = verity.loadVerifier(data = verifierBytes)
+                val loadMs = (System.nanoTime() - loadStart) / 1_000_000
                 proverScheme = prover
                 verifierScheme = verifier
 
