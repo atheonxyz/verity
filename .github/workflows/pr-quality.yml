@@ -45,8 +45,8 @@ jobs:
           TOTAL=$((ADDITIONS + DELETIONS))
 
           echo "PR size: +$ADDITIONS / -$DELETIONS ($TOTAL lines changed)"
-          echo "## PR Size: $TOTAL lines changed" >> $GITHUB_STEP_SUMMARY
-          echo "+$ADDITIONS / -$DELETIONS" >> $GITHUB_STEP_SUMMARY
+          echo "## PR Size: $TOTAL lines changed" >> "$GITHUB_STEP_SUMMARY"
+          echo "+$ADDITIONS / -$DELETIONS" >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$TOTAL" -gt 1000 ]; then
             echo "::warning::Large PR ($TOTAL lines). Consider splitting into smaller PRs."

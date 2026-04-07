@@ -77,4 +77,4 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Dry run summary
         if: ${{ inputs.dry_run }}
-        run: echo "Dry run complete. Would publish v${{ needs.validate.outputs.version }} to npm." >> $GITHUB_STEP_SUMMARY
+        run: echo "Dry run complete. Would publish v${{ needs.validate.outputs.version }} to npm." >> "$GITHUB_STEP_SUMMARY"
