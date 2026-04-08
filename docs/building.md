@@ -71,6 +71,8 @@ cd sdks/js && npm install && npm test
 cd sdks/js && npm run test:watch         # watch mode
 ```
 
+> **Note:** `test-swift` and `test-kotlin` automatically run `test-fixtures` as a prerequisite, which generates `.pkp`/`.pkv` fixture files from test circuits. This requires `core-native` to be built first.
+
 ## Linting & Formatting
 
 ```bash

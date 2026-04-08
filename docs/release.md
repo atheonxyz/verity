@@ -21,24 +21,24 @@ All SDKs share a single version from the root `VERSION` file.
    git push origin main --tags
    ```
 
-4. CI automatically:
-   - Builds core for all targets
-   - Runs all SDK tests
-   - Publishes Swift SDK (GitHub release with XCFramework)
-   - Publishes Kotlin SDK (Maven Central)
-   - Publishes JS SDK (npm)
+4. Trigger release workflows manually via GitHub Actions UI (`workflow_dispatch`):
+   - **Swift**: Release Swift SDK — builds XCFramework, creates GitHub release
+   - **Kotlin**: Release Kotlin SDK — publishes to Maven Central
+   - **JS**: Release JS SDK — publishes to npm
 
-## Manual Release
+   Each workflow supports a `dry_run` option to validate without publishing.
 
-If CI is not available:
+## Local Release
+
+If GitHub Actions is not available:
 
 ```bash
 # Swift
 make release-swift
 
-# Kotlin
+# Kotlin (requires GPG + Sonatype credentials)
 make release-kotlin
 
-# JS
+# JS (requires NPM_TOKEN)
 make release-js
 ```
