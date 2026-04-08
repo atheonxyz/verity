@@ -1,16 +1,25 @@
-# Verity
+<h1 align="center">Verity</h1>
 
-Zero-knowledge proofs for **iOS**, **Android**, and **JavaScript**.
-One API. Multiple proving backends. Every platform.
+<p align="center">
+  <strong>Zero-knowledge proofs for iOS, Android, and JavaScript.</strong><br>
+  One API. Multiple proving backends. Every platform.
+</p>
 
-[![CI](https://github.com/atheonxyz/verity/actions/workflows/ci.yml/badge.svg)](https://github.com/atheonxyz/verity/actions/workflows/ci.yml)
-[![Security](https://github.com/atheonxyz/verity/actions/workflows/security.yml/badge.svg)](https://github.com/atheonxyz/verity/actions/workflows/security.yml)
-[![Version](https://img.shields.io/github/v/release/atheonxyz/verity)](https://github.com/atheonxyz/verity/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-![iOS](https://img.shields.io/badge/iOS_15+-000000?logo=apple&logoColor=white)
-![Android](https://img.shields.io/badge/Android_API_24+-3DDC84?logo=android&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)
-![Browser](https://img.shields.io/badge/Browser-4285F4?logo=googlechrome&logoColor=white)
+<p align="center">
+  <a href="https://github.com/atheonxyz/verity/actions/workflows/ci.yml"><img src="https://github.com/atheonxyz/verity/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/atheonxyz/verity/actions/workflows/security.yml"><img src="https://github.com/atheonxyz/verity/actions/workflows/security.yml/badge.svg" alt="Security"></a>
+  <a href="https://github.com/atheonxyz/verity/releases"><img src="https://img.shields.io/github/v/release/atheonxyz/verity" alt="Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/iOS_15+-000000?logo=apple&logoColor=white" alt="iOS">
+  <img src="https://img.shields.io/badge/Android_API_24+-3DDC84?logo=android&logoColor=white" alt="Android">
+  <img src="https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white" alt="Node.js">
+  <img src="https://img.shields.io/badge/Browser-4285F4?logo=googlechrome&logoColor=white" alt="Browser">
+</p>
+
+<br>
 
 - **One API everywhere** — the same `load`, `prove`, `verify` flow across Swift, Kotlin, and TypeScript
 - **Pluggable backends** — ProveKit today, with Barretenberg, Circom, Jolt, and more on the roadmap. Swap backends without changing application code.
@@ -209,7 +218,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and relea
 
 ## Security
 
-Report vulnerabilities to **security@atheon.xyz**. See [SECURITY.md](SECURITY.md) for scope and disclosure policy.
+Report vulnerabilities to **hello@atheon.xyz**. See [SECURITY.md](SECURITY.md) for scope and disclosure policy.
 
 ## License
 
