@@ -71,6 +71,8 @@ cd sdks/js && npm install && npm test
 cd sdks/js && npm run test:watch         # watch mode
 ```
 
+> **Note:** `test-swift` and `test-kotlin` automatically run `test-fixtures` as a prerequisite, which generates `.pkp`/`.pkv` fixture files from test circuits. This requires `core-native` to be built first.
+
 ## Linting & Formatting
 
 ```bash
@@ -94,7 +96,7 @@ make release-kotlin                      # publish to Maven Central (needs GPG +
 make release-js                          # publish to npm (needs NPM_TOKEN)
 ```
 
-See [release.md](release.md) for the full release process.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for the full release process.
 
 ## Cleaning
 

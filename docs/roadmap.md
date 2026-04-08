@@ -1,17 +1,16 @@
 # Roadmap
 
-## Completed (v0.2.0)
+## Completed
 
 - [x] Kotlin Android SDK with JNI bridge
 - [x] JavaScript/TypeScript SDK scaffolding (types, errors, async API)
 - [x] CI/CD pipelines for core builds and all SDKs
 - [x] Thread-safe backend initialization (Swift + Kotlin)
-- [x] Release trigger via GitHub Actions on tag push
+- [x] Release workflows via GitHub Actions (manual `workflow_dispatch`)
+- [x] Error string propagation through FFI (`verity_last_error_message`)
+- [x] Actionable error messages with fix suggestions in all SDKs
 
 ## In Progress
-
-### Error String Propagation
-Propagate actual Rust error strings through FFI instead of just error codes. Currently backends return integer codes; the SDK maps them to generic messages. Passing the original error string would give developers much better debugging context.
 
 ### JS SDK Backend Bindings
 Complete the N-API (Node.js) and WASM (browser) backend bindings. The TypeScript API layer is done; the native bridge needs implementation.

@@ -4,8 +4,8 @@
 
 | Version | Supported          |
 |---------|--------------------|
-| 0.2.x   | :white_check_mark: |
-| < 0.2   | :x:                |
+| 0.3.x   | :white_check_mark: |
+| < 0.3   | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -13,7 +13,7 @@
 
 If you discover a security vulnerability in Verity, please report it responsibly:
 
-1. Email **security@atheon.xyz** with a description of the vulnerability
+1. Email **hello@atheon.xyz** with a description of the vulnerability
 2. Include steps to reproduce, if possible
 3. We will acknowledge receipt within 48 hours
 4. We will provide a fix timeline within 7 days
