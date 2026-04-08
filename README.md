@@ -198,7 +198,6 @@ Working demo applications for each platform:
 - [Building & Testing](docs/building.md) — developer setup, build targets, and test commands
 - [Adding a Backend](docs/adding-a-backend.md) — contribute a new ZK proving backend
 - [Adding an SDK](docs/adding-an-sdk.md) — add support for a new platform
-- [Release Process](docs/release.md) — versioning and publishing
 - [Roadmap](docs/roadmap.md) — planned backends, async APIs, and new platforms
 - [Changelog](CHANGELOG.md) — release history
 

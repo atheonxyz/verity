@@ -96,7 +96,7 @@ make release-kotlin                      # publish to Maven Central (needs GPG +
 make release-js                          # publish to npm (needs NPM_TOKEN)
 ```
 
-See [release.md](release.md) for the full release process.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for the full release process.
 
 ## Cleaning
 
