@@ -16,9 +16,9 @@ val BUNDLED_CIRCUITS = listOf(
     DemoCircuit("SHA-256", "SHA-256 hash proof — medium complexity", "circuits/noir_sha256"),
     DemoCircuit("Passport Age Check", "Passport age verification — larger circuit", "circuits/complete_age_check"),
     DemoCircuit(
-        "Passport Age Check (Fragmented)",
-        "Multi-step passport verification — 4 chained proofs",
-        "circuits/fragmented_complete_age_check",
-        steps = listOf("t_add_dsc_720", "t_add_id_data_720", "t_add_integrity_commit", "t_attest"),
+        "Passport Age Check 1300 (Fragmented)",
+        "Multi-step passport verification — 4 chained proofs (1300-byte TBS)",
+        "circuits/fragmented_age_check_1300",
+        steps = listOf("t_add_dsc_1300", "t_add_id_data_1300", "t_add_integrity_commit", "t_attest"),
     ),
 )

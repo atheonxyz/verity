@@ -66,7 +66,8 @@ case "$BACKENDS" in
         ;;
 esac
 
-CARGO_PROFILE="${CARGO_PROFILE:-release}"
+CARGO_PROFILE="${CARGO_PROFILE:-release-mobile}"
+export CARGO_PROFILE_RELEASE_MOBILE_DEBUG=0
 
 # -- Android NDK detection --
 if [ -z "${ANDROID_NDK_HOME:-}" ]; then
@@ -169,6 +170,26 @@ for entry in "${TARGETS[@]}"; do
 
     echo "  -> $OUTPUT_DIR/$ABI/"
     echo ""
+done
+
+# Strip debug symbols and logs from all output libraries
+LLVM_STRIP="${TOOLCHAIN}/bin/llvm-strip"
+echo "Stripping debug symbols from Android libraries..."
+for abi_dir in "$OUTPUT_DIR"/*/; do
+    for lib in "$abi_dir"*.a "$abi_dir"*.so; do
+        [ -f "$lib" ] || continue
+        echo "  strip: $(basename "$lib") ($(basename "$abi_dir"))"
+        "$LLVM_STRIP" --strip-debug --strip-unneeded "$lib"
+    done
+done
+
+echo ""
+echo "Library sizes:"
+for abi_dir in "$OUTPUT_DIR"/*/; do
+    for lib in "$abi_dir"*.a "$abi_dir"*.so; do
+        [ -f "$lib" ] || continue
+        ls -lh "$lib"
+    done
 done
 
 echo "=== Done: $OUTPUT_DIR (backends: $BACKENDS) ==="

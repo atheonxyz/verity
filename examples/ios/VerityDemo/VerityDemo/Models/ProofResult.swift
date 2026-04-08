@@ -24,12 +24,12 @@ struct DemoCircuit: Identifiable, Sendable {
 let bundledCircuits = [
     DemoCircuit(name: "Poseidon2", description: "Hash function proof — fast, small circuit", filePrefix: "poseidon2"),
     DemoCircuit(name: "SHA-256", description: "SHA-256 hash proof — medium complexity", filePrefix: "noir_sha256"),
-    DemoCircuit(name: "Age Check", description: "Passport age verification — larger circuit", filePrefix: "complete_age_check"),
+    DemoCircuit(name: "Passport Age Check", description: "Passport age verification — larger circuit", filePrefix: "complete_age_check"),
     DemoCircuit(
-        name: "Age Check (Fragmented)",
-        description: "4-step chained passport proof",
-        filePrefix: "fragmented_age_check",
-        steps: ["t_add_dsc_720", "t_add_id_data_720", "t_add_integrity_commit", "t_attest"]
+        name: "Passport Age Check 1300 (Fragmented)",
+        description: "Multi-step passport verification — 4 chained proofs (1300-byte TBS)",
+        filePrefix: "fragmented_age_check_1300",
+        steps: ["t_add_dsc_1300", "t_add_id_data_1300", "t_add_integrity_commit", "t_attest"]
     ),
 ]
 

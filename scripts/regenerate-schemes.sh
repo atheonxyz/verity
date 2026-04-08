@@ -37,7 +37,7 @@ prepare_circuit() {
     local label="$4"
 
     echo "  [$label]"
-    (cd "$PROVEKIT_ROOT" && cargo run --release --bin provekit-cli -- \
+    (cd "$PROVEKIT_ROOT" && cargo run --profile release-mobile --bin provekit-cli -- \
         prepare "$json" --pkp "$pkp" --pkv "$pkv" 2>&1 | grep -E "INFO|Wrote|error" || true)
     echo "    pkp: $(du -h "$pkp" | cut -f1), pkv: $(du -h "$pkv" | cut -f1)"
 }

@@ -139,13 +139,13 @@ class MainActivity : AppCompatActivity() {
                 val inputPath = copyAssetToCache("${circuit.assetDir}/Prover.toml")
                 val memBefore = nativeHeapMB()
 
-                // -- Load --
+                // -- Load precompiled schemes --
                 updateStatus("Loading ${circuit.name} ($bName)...")
                 val loadStart = System.nanoTime()
-                val proverPath = copyAssetToCache("${circuit.assetDir}/prover.pkp")
-                val verifierPath = copyAssetToCache("${circuit.assetDir}/verifier.pkv")
-                val prover = verity.loadProver(proverPath)
-                val verifier = verity.loadVerifier(verifierPath)
+                val proverBytes = loadAssetBytes("${circuit.assetDir}/prover.pkp")
+                val verifierBytes = loadAssetBytes("${circuit.assetDir}/verifier.pkv")
+                val prover = verity.loadProver(data = proverBytes)
+                val verifier = verity.loadVerifier(data = verifierBytes)
                 val loadMs = (System.nanoTime() - loadStart) / 1_000_000
                 proverScheme = prover
                 verifierScheme = verifier
@@ -303,13 +303,13 @@ class MainActivity : AppCompatActivity() {
                     updateStatus("Step ${index + 1}/${steps.size}: $step ($bName)...")
 
                     val inputPath = copyAssetToCache("${circuit.assetDir}/$step/Prover.toml")
-                    val proverPath = copyAssetToCache("${circuit.assetDir}/$step/prover.pkp")
-                    val verifierPath = copyAssetToCache("${circuit.assetDir}/$step/verifier.pkv")
 
                     // Load
                     val loadStart = System.nanoTime()
-                    val proverScheme = verity.loadProver(proverPath)
-                    val verifierScheme = verity.loadVerifier(verifierPath)
+                    val proverBytes = loadAssetBytes("${circuit.assetDir}/$step/prover.pkp")
+                    val verifierBytes = loadAssetBytes("${circuit.assetDir}/$step/verifier.pkv")
+                    val proverScheme = verity.loadProver(data = proverBytes)
+                    val verifierScheme = verity.loadVerifier(data = verifierBytes)
                     val loadMs = (System.nanoTime() - loadStart) / 1_000_000
                     verifiers.add(verifierScheme)
 
@@ -591,7 +591,10 @@ class MainActivity : AppCompatActivity() {
             t.message ?: "Unknown error"
     }
 
-    // -- Asset copy --
+    // -- Asset helpers --
+
+    private fun loadAssetBytes(assetPath: String): ByteArray =
+        assets.open(assetPath).use { it.readBytes() }
 
     private fun copyAssetToCache(assetPath: String): String {
         val outFile = File(cacheDir, assetPath.replace("/", "_"))

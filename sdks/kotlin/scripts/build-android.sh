@@ -19,7 +19,7 @@ DISPATCHER_DIR="$CORE_DIR/dispatcher"
 INCLUDE_DIR="$CORE_DIR/include"
 JNI_DIR="$SDK_DIR/src/main/jni"
 OUTPUT_DIR="$SDK_DIR/src/main/jniLibs"
-CARGO_PROFILE="${CARGO_PROFILE:-release}"
+CARGO_PROFILE="${CARGO_PROFILE:-release-mobile}"
 
 # Android NDK — auto-detect or use env var
 if [ -z "${ANDROID_NDK_HOME:-}" ]; then
@@ -165,6 +165,10 @@ for entry in "${TARGETS[@]}"; do
         "$WORK_DIR/verity_jni.o" \
         $LINK_LIBS \
         -llog -lm -lc -lc++_static -lc++abi
+
+    # Strip debug symbols to reduce .so size
+    echo "  Stripping debug symbols..."
+    "${TOOLCHAIN}/bin/llvm-strip" --strip-all "$OUTPUT_DIR/$ABI/libverity_jni.so"
 
     rm -rf "$WORK_DIR"
     echo "  -> $OUTPUT_DIR/$ABI/libverity_jni.so"
