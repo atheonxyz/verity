@@ -303,13 +303,13 @@ class MainActivity : AppCompatActivity() {
                     updateStatus("Step ${index + 1}/${steps.size}: $step ($bName)...")
 
                     val inputPath = copyAssetToCache("${circuit.assetDir}/$step/Prover.toml")
-                    val proverPath = copyAssetToCache("${circuit.assetDir}/$step/prover.pkp")
-                    val verifierPath = copyAssetToCache("${circuit.assetDir}/$step/verifier.pkv")
 
                     // Load
                     val loadStart = System.nanoTime()
-                    val proverScheme = verity.loadProver(proverPath)
-                    val verifierScheme = verity.loadVerifier(verifierPath)
+                    val proverBytes = loadAssetBytes("${circuit.assetDir}/$step/prover.pkp")
+                    val verifierBytes = loadAssetBytes("${circuit.assetDir}/$step/verifier.pkv")
+                    val proverScheme = verity.loadProver(data = proverBytes)
+                    val verifierScheme = verity.loadVerifier(data = verifierBytes)
                     val loadMs = (System.nanoTime() - loadStart) / 1_000_000
                     verifiers.add(verifierScheme)
 
