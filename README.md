@@ -43,7 +43,7 @@ Add the dependency to your `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("xyz.atheon:verity:0.3.0")
+    implementation("xyz.atheon:verity:0.0.2")
 }
 ```
 
