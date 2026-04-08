@@ -2,6 +2,8 @@ plugins {
     id("com.android.library") version "8.5.0"
     id("org.jetbrains.kotlin.android") version "1.9.24"
     id("maven-publish")
+    signing
+    id("com.gradleup.nmcp") version "1.4.4"
 }
 
 val publishedAbis = listOf("arm64-v8a")
@@ -63,11 +65,51 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "xyz.atheon"
             artifactId = "verity"
-            version = file("../../VERSION").readText().trim()
+            version = "0.0.2"
 
             afterEvaluate {
                 from(components["release"])
             }
+
+            pom {
+                name.set("Verity")
+                description.set("Zero-knowledge proof SDK for Android — ProveKit and Barretenberg backends")
+                url.set("https://github.com/atheonxyz/verity")
+
+                licenses {
+                    license {
+                        name.set("Proprietary")
+                        url.set("https://github.com/atheonxyz/verity")
+                    }
+                }
+
+                developers {
+                    developer {
+                        id.set("atheon")
+                        name.set("Atheon")
+                        email.set("rose@atheon.xyz")
+                    }
+                }
+
+                scm {
+                    connection.set("scm:git:git://github.com/atheonxyz/verity.git")
+                    developerConnection.set("scm:git:ssh://github.com/atheonxyz/verity.git")
+                    url.set("https://github.com/atheonxyz/verity")
+                }
+            }
         }
+    }
+
+}
+
+signing {
+    useGpgCmd()
+    sign(publishing.publications["release"])
+}
+
+nmcp {
+    publishAllPublicationsToCentralPortal {
+        username.set(findProperty("mavenCentralUsername") as String? ?: "")
+        password.set(findProperty("mavenCentralPassword") as String? ?: "")
     }
 }
