@@ -1,6 +1,7 @@
 # Build outputs
 output/
 core/target/
+/.build/
 
 # Swift
 sdks/swift/.build/
