@@ -18,6 +18,7 @@ jobs:
       core: ${{ steps.filter.outputs.core }}
       swift: ${{ steps.filter.outputs.swift }}
       kotlin: ${{ steps.filter.outputs.kotlin }}
+      kotlin-jvm: ${{ steps.filter.outputs.kotlin-jvm }}
       js: ${{ steps.filter.outputs.js }}
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +34,8 @@ jobs:
               - 'sdks/swift/**'
             kotlin:
               - 'sdks/kotlin/**'
+            kotlin-jvm:
+              - 'sdks/kotlin-jvm/**'
             js:
               - 'sdks/js/**'
 
@@ -66,10 +69,11 @@ jobs:
       needs.changes.outputs.core == 'true' ||
       needs.changes.outputs.swift == 'true' ||
       needs.changes.outputs.kotlin == 'true' ||
+      needs.changes.outputs.kotlin-jvm == 'true' ||
       needs.changes.outputs.js == 'true'
     uses: ./.github/workflows/core-build.yml
     with:
-      targets: "ios,android,wasm,native"
+      targets: "ios,android,wasm,native,jvm"
       rust-toolchain: "nightly-2026-03-04"
       provekit-ref: "v1"
 
@@ -132,14 +136,27 @@ jobs:
           npm run lint
           npm test
 
+  test-kotlin-jvm:
+    needs: [changes, core-build]
+    if: needs.changes.outputs.kotlin-jvm == 'true' || needs.changes.outputs.core == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Build and test
+        run: cd sdks/kotlin-jvm && ./gradlew build
+
   ci-pass:
     if: always()
-    needs: [rust-checks, test-swift, test-kotlin, test-js]
+    needs: [rust-checks, test-swift, test-kotlin, test-kotlin-jvm, test-js]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
         run: |
-          results=("${{ needs.rust-checks.result }}" "${{ needs.test-swift.result }}" "${{ needs.test-kotlin.result }}" "${{ needs.test-js.result }}")
+          results=("${{ needs.rust-checks.result }}" "${{ needs.test-swift.result }}" "${{ needs.test-kotlin.result }}" "${{ needs.test-kotlin-jvm.result }}" "${{ needs.test-js.result }}")
           for r in "${results[@]}"; do
             if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
               echo "Job failed or was cancelled: $r"
