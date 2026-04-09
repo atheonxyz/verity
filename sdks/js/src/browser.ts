@@ -1,8 +1,5 @@
 /**
  * Browser entry point — uses WASM or vendor JS for proving backends.
- *
- * Each backend provides its own WASM binding (compiled from Rust)
- * or wraps a vendor JS package (e.g., @aztec/bb.js for Barretenberg).
  */
 
 export { Verity } from "./verity.js";
