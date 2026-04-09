@@ -7,7 +7,6 @@
 
 export { Verity } from "./verity.js";
 export { Backend } from "./types.js";
-export type { ProverScheme, VerifierScheme } from "./types.js";
+export type { ProverScheme, VerifierScheme, BackendOptions } from "./types.js";
+export { Proof } from "./proof.js";
 export { VerityError, VerityErrorCode } from "./errors.js";
-
-// TODO: Wire up WASM/vendor bindings in Verity.resolveBinding()

@@ -1,5 +1,6 @@
 /** Error codes matching the C FFI VerityError enum. */
 export enum VerityErrorCode {
+  RESOURCE_CLOSED = -2,
   NOT_INITIALIZED = -1,
   INVALID_INPUT = 1,
   SCHEME_READ_ERROR = 2,
@@ -11,7 +12,8 @@ export enum VerityErrorCode {
   /** @deprecated Reserved (formerly circuit compilation). */
   COMPILATION_ERROR = 8,
   UNKNOWN_BACKEND = 9,
-  BACKEND_UNAVAILABLE = 10,
+  OUT_OF_MEMORY = 10,
+  BACKEND_UNAVAILABLE = 11,
 }
 
 /** Typed error for Verity operations. */
@@ -29,6 +31,8 @@ export class VerityError extends Error {
 
   private static messageForCode(code: VerityErrorCode): string {
     switch (code) {
+      case VerityErrorCode.RESOURCE_CLOSED:
+        return "Resource has been disposed";
       case VerityErrorCode.NOT_INITIALIZED:
         return "Verity not initialized";
       case VerityErrorCode.INVALID_INPUT:
@@ -49,6 +53,8 @@ export class VerityError extends Error {
         return "Reserved error code";
       case VerityErrorCode.UNKNOWN_BACKEND:
         return "Unknown or unregistered backend";
+      case VerityErrorCode.OUT_OF_MEMORY:
+        return "Out of memory";
       case VerityErrorCode.BACKEND_UNAVAILABLE:
         return "Backend not available in this runtime";
       default:
