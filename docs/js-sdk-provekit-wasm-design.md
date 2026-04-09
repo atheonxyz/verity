@@ -30,12 +30,33 @@ This matches the Swift and Kotlin SDK patterns:
 - `VerifierScheme` owns `verify()` — primary API.
 - `Verity.prove()` / `Verity.verify()` exist as convenience delegators.
 
+## Breaking Changes
+
+This spec changes the existing (never-functional) JS SDK API. All current `prove()`/`verify()` methods throw "not yet implemented", so there are no real consumers to break. Changes:
+
+- `Verity.prove()` now returns `Promise<Proof>` instead of `Promise<Uint8Array>`.
+- `Verity.verify()` now accepts `Proof` instead of `Uint8Array`.
+- `ProverScheme` gains `prove()`, `VerifierScheme` gains `verify()`.
+- `ProverScheme`/`VerifierScheme` lose `save(path)` (browser-only, no file system).
+- `BackendBinding` loses `prove()`/`verify()` (logic moves to scheme implementations).
+
+## Error Code Fix
+
+The existing `errors.ts` has `BACKEND_UNAVAILABLE = 10`, but the C FFI defines `VERITY_OUT_OF_MEMORY = 10`. Swift and Kotlin both map code 10 to OutOfMemory. This is a pre-existing bug.
+
+Fix as part of this work:
+- Add `OUT_OF_MEMORY = 10` (matching C FFI).
+- Move `BACKEND_UNAVAILABLE` to `11` (JS-only, no C counterpart).
+- Add `RESOURCE_CLOSED = -2` (JS-only, for use-after-dispose — matches Swift's `.resourceClosed` and Kotlin's `check(!closed)`).
+
 ## Public API
 
 ### Verity (factory)
 
 ```ts
 class Verity {
+  static readonly version: string;
+
   static async create(backend: Backend, options?: BackendOptions): Promise<Verity>;
 
   get backend(): Backend;
@@ -48,6 +69,8 @@ class Verity {
   verify(verifier: VerifierScheme, proof: Proof): Promise<boolean>;
 }
 ```
+
+Input validation: `loadProver()` / `loadVerifier()` throw `INVALID_INPUT` on empty `Uint8Array`, matching Swift/Kotlin behavior.
 
 ### ProverScheme
 
@@ -62,8 +85,8 @@ interface ProverScheme {
 - `inputs` — Circuit inputs as a plain object (matching the circuit ABI) or a JSON string.
 - `prove()` handles witness generation internally via noir_js, then calls ProveKit WASM.
 - Reusable — can be called multiple times (internally reconstructs WASM Prover each call).
-- `serialize()` — returns the original `.pkp` bytes.
-- `dispose()` — releases references. Safe to call multiple times.
+- `serialize()` — returns the prover scheme as serialized bytes (same format as `.pkp` files). For the ProveKit WASM backend, this returns the original bytes passed to `loadProver()`.
+- `dispose()` — releases references. Safe to call multiple times. After `dispose()`, calling `prove()` or `serialize()` throws `VerityError(RESOURCE_CLOSED)`. Internally: `private disposed = false` flag, checked at entry to every method.
 
 ### VerifierScheme
 
@@ -78,6 +101,7 @@ interface VerifierScheme {
 - `verify()` returns `true` if valid, `false` if mathematically invalid.
 - Reusable — ProveKit WASM Verifier clones internally.
 - `serialize()` — returns the original `.pkv` bytes.
+- After `dispose()`, calling `verify()` or `serialize()` throws `VerityError(RESOURCE_CLOSED)`.
 
 ### Proof
 
@@ -171,7 +195,7 @@ This is the same flow as ProveKit's own wasm-demo.
 
 **4. WASM module is a global singleton.**
 
-Matches Swift/Kotlin pattern where backends are initialized once globally. The WASM module and thread pool are shared across all `Verity` instances using `Backend.ProveKit`.
+Matches Swift/Kotlin pattern where backends are initialized once globally. The WASM module and thread pool are shared across all `Verity` instances using `Backend.ProveKit`. The WASM module and thread pool live for the lifetime of the page — there is no teardown API. This is intentional and matches how native backends work (initialized once, never torn down).
 
 **5. Threading auto-detects with graceful fallback.**
 
@@ -212,12 +236,24 @@ ProveKit WASM expects witness as `{ index: "0xhex" }`. noir_js produces a `Map<W
 function convertWitnessMap(witnessMap: Map<any, string>): Record<number, string> {
   const result: Record<number, string> = {};
   for (const [witness, value] of witnessMap.entries()) {
-    const index = typeof witness === "number" ? witness : witness.inner ?? Number(witness);
+    const index = typeof witness === "number"
+      ? witness
+      : typeof witness?.inner === "number"
+        ? witness.inner
+        : Number(witness);
+    if (Number.isNaN(index)) {
+      throw new VerityError(
+        VerityErrorCode.WITNESS_READ_ERROR,
+        `Failed to extract witness index from key: ${witness}`
+      );
+    }
     result[index] = value;
   }
   return result;
 }
 ```
+
+Targets `@noir-lang/noir_js` ≥1.0.0-beta.11. If noir_js changes its `Witness` type internals, the `NaN` guard catches it with a clear error instead of silently producing corrupt data.
 
 ### Error Mapping
 
@@ -261,10 +297,12 @@ sdks/js/
 
 | File | Change |
 |---|---|
-| `src/types.ts` | Add `prove()` to ProverScheme, `verify()` to VerifierScheme, add `Proof` class, add `BackendOptions`, remove `save()`. Simplify `BackendBinding` to just `init()`, `loadProver()`, `loadVerifier()` — prove/verify logic lives in the scheme implementations now, not the binding. |
-| `src/verity.ts` | Implement `resolveBinding()`, add `options` param to `create()`, add convenience `prove()`/`verify()` that delegate to `prover.prove()` / `verifier.verify()` |
+| `src/types.ts` | Add `prove()` to ProverScheme, `verify()` to VerifierScheme, add `Proof` class, add `BackendOptions`, remove `save()`. Simplify `BackendBinding` to: `init(options?: BackendOptions): Promise<void>`, `loadProver(data: Uint8Array): Promise<ProverScheme>`, `loadVerifier(data: Uint8Array): Promise<VerifierScheme>`. Remove `prove()`/`verify()` from the interface. |
+| `src/verity.ts` | Implement `resolveBinding()`, add `options` param to `create()`, add `static version`, add convenience `prove()`/`verify()` that delegate to `prover.prove()` / `verifier.verify()` |
+| `src/errors.ts` | Fix error code 10 collision: add `OUT_OF_MEMORY = 10`, move `BACKEND_UNAVAILABLE` to `11`, add `RESOURCE_CLOSED = -2` |
 | `src/index.ts` | Export `Proof`, `BackendOptions` |
-| `package.json` | Add `peerDependencies` for noir_js/acvm_js, add `wasm/` to `files[]` |
+| `src/backends/barretenberg.ts` | Update to match new `BackendBinding` interface (remove `prove()`/`verify()` stubs) |
+| `package.json` | Add `peerDependencies` for noir_js/acvm_js, update `files[]` |
 | `sdks/js/wasm/verity_wasm.rs` | Delete (replaced by pre-built ProveKit WASM) |
 | `sdks/js/wasm/Cargo.toml` | Delete |
 
@@ -292,7 +330,11 @@ sdks/js/
 }
 ```
 
-Marked optional so the package installs without them (for Node.js users who don't need browser WASM). Required at runtime if using `Backend.ProveKit` in browser.
+Marked optional so the package installs cleanly for Node.js users who don't need browser WASM. Required at runtime for `Backend.ProveKit` in browser. `ProveKitBinding.init()` catches the dynamic import failure and throws a clear error:
+
+```
+VerityError(BACKEND_UNAVAILABLE, "ProveKit browser backend requires @noir-lang/noir_js and @noir-lang/acvm_js. Install with: npm install @noir-lang/noir_js @noir-lang/acvm_js")
+```
 
 ### Dev Dependencies (new)
 
@@ -323,10 +365,10 @@ The `wasm/` directory is `.gitignore`d — built artifacts, not source.
 
 `files` in `package.json`:
 ```json
-["dist/", "wasm/", "README.md"]
+["dist/", "README.md"]
 ```
 
-Actual WASM binary ships in the npm package for zero-config browser usage.
+tsup copies `wasm/` into `dist/wasm/` during build. Only `dist/` ships in the npm package — no duplication.
 
 ## Testing Strategy
 
