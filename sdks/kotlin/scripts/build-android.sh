@@ -84,12 +84,13 @@ for entry in "${TARGETS[@]}"; do
     AR="${TOOLCHAIN}/bin/llvm-ar"
 
     # Find static libraries from core build
+    ANDROID_OUTPUT_DIR="$REPO_DIR/output/android/$ABI"
     CORE_TARGET_DIR="$CORE_DIR/target/$RUST_TARGET/$CARGO_PROFILE"
     PK_TARGET_DIR="${PROVEKIT_ROOT:+$PROVEKIT_ROOT/target/$RUST_TARGET/$CARGO_PROFILE}"
 
-    if [ ! -d "$CORE_TARGET_DIR" ]; then
-        echo "  WARNING: Core target dir not found: $CORE_TARGET_DIR"
-        echo "  Run 'CARGO_PROFILE=$CARGO_PROFILE bash core/build/build-android.sh <provekit-path>' first."
+    if [ ! -d "$ANDROID_OUTPUT_DIR" ] && [ ! -d "$CORE_TARGET_DIR" ]; then
+        echo "  WARNING: No build output found for $ABI"
+        echo "  Run 'bash core/build/build-android.sh <provekit-path>' first."
         continue
     fi
 
