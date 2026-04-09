@@ -176,6 +176,70 @@ public final class Verity: @unchecked Sendable {
         }
     }
 
+    // MARK: - Async Load
+
+    /// Load a prover scheme from a file (async).
+    public func loadProver(from path: String) async throws -> ProverScheme {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.loadProver(from: path))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Load a prover scheme from a URL (async).
+    public func loadProver(from url: URL) async throws -> ProverScheme {
+        try await loadProver(from: url.path)
+    }
+
+    /// Load a prover scheme from bytes (async).
+    public func loadProver(data: Data) async throws -> ProverScheme {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.loadProver(data: data))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Load a verifier scheme from a file (async).
+    public func loadVerifier(from path: String) async throws -> VerifierScheme {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.loadVerifier(from: path))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Load a verifier scheme from a URL (async).
+    public func loadVerifier(from url: URL) async throws -> VerifierScheme {
+        try await loadVerifier(from: url.path)
+    }
+
+    /// Load a verifier scheme from bytes (async).
+    public func loadVerifier(data: Data) async throws -> VerifierScheme {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.loadVerifier(data: data))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
     // MARK: - Prove / Verify (convenience)
 
     /// Generate a proof using a prover scheme and witness values.
@@ -200,6 +264,16 @@ public final class Verity: @unchecked Sendable {
     /// - Returns: `true` if proof is valid, `false` if mathematically invalid.
     public func verify(with verifier: VerifierScheme, proof: Proof) throws -> Bool {
         try verifier.verify(proof: proof)
+    }
+
+    /// Generate a proof (async convenience).
+    public func prove(with prover: ProverScheme, witness: Witness) async throws -> Proof {
+        try await prover.prove(witness: witness)
+    }
+
+    /// Verify a proof (async convenience).
+    public func verify(with verifier: VerifierScheme, proof: Proof) async throws -> Bool {
+        try await verifier.verify(proof: proof)
     }
 
     // MARK: - Memory Configuration (ProveKit)
