@@ -28,43 +28,133 @@ static void release_cstr(JNIEnv *env, jstring jstr, const char *cstr) {
     }
 }
 
-/** Throw a typed VerityException from an FFI error code via fromCode(). */
-static void throw_verity_error(JNIEnv *env, int code) {
-    jclass cls = (*env)->FindClass(env, "xyz/atheon/verity/VerityException");
-    if (cls == NULL) {
-        (*env)->ExceptionClear(env);
-        /* Fall back to RuntimeException if VerityException class not found */
-        jclass rte = (*env)->FindClass(env, "java/lang/RuntimeException");
-        if (rte != NULL) {
-            char msg[64];
-            snprintf(msg, sizeof(msg), "Verity FFI error (code %d)", code);
-            (*env)->ThrowNew(env, rte, msg);
-            (*env)->DeleteLocalRef(env, rte);
-        }
-        return;
+/** Throw a typed VerityException from an FFI error code via cached fromCode(). */
+static void throw_verity_error(JNIEnv *env, int code);
+
+/* ------------------------------------------------------------------ */
+/*  Cached JNI references (populated in JNI_OnLoad)                   */
+/* ------------------------------------------------------------------ */
+
+static jclass    g_proof_class    = NULL;
+static jmethodID g_proof_ctor     = NULL;
+static jclass    g_exception_class = NULL;
+static jmethodID g_exception_from  = NULL;
+static jclass    g_memstats_class  = NULL;
+static jmethodID g_memstats_ctor   = NULL;
+
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
+    JNIEnv *env;
+    if ((*vm)->GetEnv(vm, (void **)&env, JNI_VERSION_1_6) != JNI_OK) {
+        return JNI_ERR;
     }
-    jmethodID fromCode = (*env)->GetStaticMethodID(env, cls, "fromCode",
-        "(I)Lxyz/atheon/verity/VerityException;");
-    if (fromCode == NULL) {
-        (*env)->DeleteLocalRef(env, cls);
-        (*env)->ExceptionClear(env);
-        jclass rte = (*env)->FindClass(env, "java/lang/RuntimeException");
-        if (rte != NULL) {
-            char msg[64];
-            snprintf(msg, sizeof(msg), "Verity FFI error (code %d)", code);
-            (*env)->ThrowNew(env, rte, msg);
-            (*env)->DeleteLocalRef(env, rte);
-        }
-        return;
-    }
-    jthrowable exc = (jthrowable)(*env)->CallStaticObjectMethod(env, cls, fromCode, (jint)code);
+
+    /* Proof class + constructor */
+    jclass cls = (*env)->FindClass(env, "xyz/atheon/verity/Proof");
+    if (cls == NULL) return JNI_ERR;
+    g_proof_class = (*env)->NewGlobalRef(env, cls);
     (*env)->DeleteLocalRef(env, cls);
+    if (g_proof_class == NULL) return JNI_ERR;
+
+    /*
+     * Kotlin 'internal' constructors compile to public <init> at bytecode level.
+     * Kotlin 1.9.x may add a synthetic DefaultConstructorMarker parameter.
+     * IMPORTANT: After building, verify with:
+     *   javap -p -s build/.../Proof.class | grep -A1 init
+     * and update this descriptor if needed.
+     *
+     * Try the simple descriptor first (works if no synthetic marker):
+     */
+    g_proof_ctor = (*env)->GetMethodID(env, g_proof_class, "<init>",
+        "(Ljava/nio/ByteBuffer;JJJI)V");
+    if (g_proof_ctor == NULL) {
+        /* Try with DefaultConstructorMarker (Kotlin internal visibility) */
+        (*env)->ExceptionClear(env);
+        g_proof_ctor = (*env)->GetMethodID(env, g_proof_class, "<init>",
+            "(Ljava/nio/ByteBuffer;JJJILkotlin/jvm/internal/DefaultConstructorMarker;)V");
+        if (g_proof_ctor == NULL) return JNI_ERR;
+    }
+
+    /* VerityException class + fromCode */
+    cls = (*env)->FindClass(env, "xyz/atheon/verity/VerityException");
+    if (cls == NULL) return JNI_ERR;
+    g_exception_class = (*env)->NewGlobalRef(env, cls);
+    (*env)->DeleteLocalRef(env, cls);
+    if (g_exception_class == NULL) return JNI_ERR;
+
+    g_exception_from = (*env)->GetStaticMethodID(env, g_exception_class, "fromCode",
+        "(I)Lxyz/atheon/verity/VerityException;");
+    if (g_exception_from == NULL) return JNI_ERR;
+
+    /* MemoryStats class + constructor */
+    cls = (*env)->FindClass(env, "xyz/atheon/verity/MemoryStats");
+    if (cls == NULL) return JNI_ERR;
+    g_memstats_class = (*env)->NewGlobalRef(env, cls);
+    (*env)->DeleteLocalRef(env, cls);
+    if (g_memstats_class == NULL) return JNI_ERR;
+
+    g_memstats_ctor = (*env)->GetMethodID(env, g_memstats_class, "<init>", "(JJJ)V");
+    if (g_memstats_ctor == NULL) return JNI_ERR;
+
+    return JNI_VERSION_1_6;
+}
+
+/** Wrap a VerityBuf as a Kotlin Proof object via DirectByteBuffer (zero-copy). */
+static jobject wrap_proof(JNIEnv *env, VerityBuf buf) {
+    jobject dbuf = (*env)->NewDirectByteBuffer(env, buf.ptr, (jlong)buf.len);
+    if (dbuf == NULL) {
+        verity_free_buf(buf);
+        return NULL; /* OOM */
+    }
+    /*
+     * 5-arg variant (no DefaultConstructorMarker):
+     *   (ByteBuffer, long, long, long, int)
+     *
+     * If the Kotlin compiler emits a synthetic marker, switch to the 6-arg
+     * variant below and pass NULL as the last argument:
+     *
+     *   jobject proof = (*env)->NewObject(env, g_proof_class, g_proof_ctor,
+     *       dbuf,
+     *       (jlong)(uintptr_t)buf.ptr,
+     *       (jlong)buf.len,
+     *       (jlong)buf.cap,
+     *       (jint)buf.backend,
+     *       NULL);
+     */
+    jobject proof = (*env)->NewObject(env, g_proof_class, g_proof_ctor,
+        dbuf,
+        (jlong)(uintptr_t)buf.ptr,
+        (jlong)buf.len,
+        (jlong)buf.cap,
+        (jint)buf.backend);
+    (*env)->DeleteLocalRef(env, dbuf);
+    if (proof == NULL) {
+        /* Constructor failed — free Rust memory */
+        verity_free_buf(buf);
+    }
+    /* On success: Rust memory ownership transfers to Kotlin Proof.close() */
+    return proof;
+}
+
+/** Throw a typed VerityException from an FFI error code via cached fromCode(). */
+static void throw_verity_error(JNIEnv *env, int code) {
+    if (g_exception_class == NULL || g_exception_from == NULL) {
+        /* Fallback if JNI_OnLoad hasn't run or failed */
+        jclass rte = (*env)->FindClass(env, "java/lang/RuntimeException");
+        if (rte != NULL) {
+            char msg[64];
+            snprintf(msg, sizeof(msg), "Verity FFI error (code %d)", code);
+            (*env)->ThrowNew(env, rte, msg);
+            (*env)->DeleteLocalRef(env, rte);
+        }
+        return;
+    }
+    jthrowable exc = (jthrowable)(*env)->CallStaticObjectMethod(
+        env, g_exception_class, g_exception_from, (jint)code);
     if ((*env)->ExceptionCheck(env)) {
         return; /* fromCode() itself threw; let that propagate */
     }
     if (exc != NULL) {
         (*env)->Throw(env, exc);
-        // exc local ref cleaned up automatically on native method return
     }
 }
 
@@ -97,10 +187,10 @@ Java_xyz_atheon_verity_Verity_nativeInit(
 }
 
 /* ------------------------------------------------------------------ */
-/*  Prove (TOML file) — takes prover handle, returns proof bytes      */
+/*  Prove (TOML file) — takes prover handle, returns Proof object     */
 /* ------------------------------------------------------------------ */
 
-JNIEXPORT jbyteArray JNICALL
+JNIEXPORT jobject JNICALL
 Java_xyz_atheon_verity_Verity_nativeProveToml(
     JNIEnv *env, jclass clazz, jlong proverHandle, jstring inputPath)
 {
@@ -131,27 +221,14 @@ Java_xyz_atheon_verity_Verity_nativeProveToml(
         return NULL;
     }
 
-    jbyteArray result = (*env)->NewByteArray(env, (jsize)buf.len);
-    if (result == NULL) {
-        verity_free_buf(buf);
-        return NULL; /* OOM */
-    }
-
-    (*env)->SetByteArrayRegion(env, result, 0, (jsize)buf.len, (const jbyte *)buf.ptr);
-    verity_free_buf(buf);
-
-    if ((*env)->ExceptionCheck(env)) {
-        return NULL;
-    }
-
-    return result;
+    return wrap_proof(env, buf);
 }
 
 /* ------------------------------------------------------------------ */
-/*  Prove (JSON string) — takes prover handle, returns proof bytes    */
+/*  Prove (JSON string) — takes prover handle, returns Proof object   */
 /* ------------------------------------------------------------------ */
 
-JNIEXPORT jbyteArray JNICALL
+JNIEXPORT jobject JNICALL
 Java_xyz_atheon_verity_Verity_nativeProveJson(
     JNIEnv *env, jclass clazz, jlong proverHandle, jstring inputsJson)
 {
@@ -182,20 +259,7 @@ Java_xyz_atheon_verity_Verity_nativeProveJson(
         return NULL;
     }
 
-    jbyteArray result = (*env)->NewByteArray(env, (jsize)buf.len);
-    if (result == NULL) {
-        verity_free_buf(buf);
-        return NULL;
-    }
-
-    (*env)->SetByteArrayRegion(env, result, 0, (jsize)buf.len, (const jbyte *)buf.ptr);
-    verity_free_buf(buf);
-
-    if ((*env)->ExceptionCheck(env)) {
-        return NULL;
-    }
-
-    return result;
+    return wrap_proof(env, buf);
 }
 
 /* ------------------------------------------------------------------ */
@@ -456,6 +520,40 @@ Java_xyz_atheon_verity_Verity_nativeSerializeVerifier(
 }
 
 /* ------------------------------------------------------------------ */
+/*  Verify (direct pointer) — zero-copy for native-backed proofs      */
+/* ------------------------------------------------------------------ */
+
+JNIEXPORT jint JNICALL
+Java_xyz_atheon_verity_Verity_nativeVerifyDirect(
+    JNIEnv *env, jclass clazz, jlong verifierHandle, jlong proofPtr, jlong proofLen)
+{
+    if (verifierHandle == 0 || proofPtr == 0 || proofLen == 0) {
+        return (jint)VERITY_INVALID_INPUT;
+    }
+
+    return (jint)verity_verify(
+        (const VerityVerifier *)(uintptr_t)verifierHandle,
+        (const uint8_t *)(uintptr_t)proofPtr,
+        (uintptr_t)proofLen);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Free a Rust-allocated buffer (called from Kotlin Proof.close())   */
+/* ------------------------------------------------------------------ */
+
+JNIEXPORT void JNICALL
+Java_xyz_atheon_verity_Verity_nativeFreeBuf(
+    JNIEnv *env, jclass clazz, jlong ptr, jlong len, jlong cap, jint backend)
+{
+    if (ptr == 0) return;  /* heap-backed proof — nothing to free */
+    VerityBuf buf = { .ptr = (uint8_t *)(uintptr_t)ptr,
+                      .len = (uintptr_t)len,
+                      .cap = (uintptr_t)cap,
+                      .backend = (int)backend };
+    verity_free_buf(buf);
+}
+
+/* ------------------------------------------------------------------ */
 /*  Free handles                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -504,12 +602,6 @@ Java_xyz_atheon_verity_Verity_nativeGetMemoryStats(
         return NULL;
     }
 
-    jclass cls = (*env)->FindClass(env, "xyz/atheon/verity/MemoryStats");
-    if (cls == NULL) return NULL;
-    jmethodID ctor = (*env)->GetMethodID(env, cls, "<init>", "(JJJ)V");
-    if (ctor == NULL) { (*env)->DeleteLocalRef(env, cls); return NULL; }
-    jobject result = (*env)->NewObject(env, cls, ctor,
+    return (*env)->NewObject(env, g_memstats_class, g_memstats_ctor,
         (jlong)ram_used, (jlong)swap_used, (jlong)peak_ram);
-    (*env)->DeleteLocalRef(env, cls);
-    return result;
 }
