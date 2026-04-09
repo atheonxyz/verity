@@ -11,7 +11,7 @@ enum SwiftSDKMode: String {
 
 // Release binary target — update URL and checksum for each release.
 let releaseXCFrameworkURL = "https://github.com/atheonxyz/verity/releases/download/v0.3.1/Verity.xcframework.zip"
-let releaseXCFrameworkChecksum = "6193a1bf785a88d917aab632cb8830913ae76158c5a146872d200bc4fcb512cf"
+let releaseXCFrameworkChecksum = "71b1d50404ae2ebb998e957dabaa07e41a2352dfe9fa5d2653738b541817dafc"
 
 let repoRoot = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
