@@ -31,15 +31,12 @@ if [ -f "$VERITY_SWIFT" ]; then
     echo "  Updated Verity.swift"
 fi
 
-# Kotlin SDK (Android + JVM)
-for VERITY_KT in \
-    "$REPO_DIR/sdks/kotlin/src/main/kotlin/xyz/atheon/verity/Verity.kt" \
-    "$REPO_DIR/sdks/kotlin-jvm/src/main/kotlin/xyz/atheon/verity/Verity.kt"; do
-    if [ -f "$VERITY_KT" ]; then
-        sed -i '' -E "s|const val VERSION = \".*\"|const val VERSION = \"$VERSION\"|" "$VERITY_KT"
-        echo "  Updated $(echo "$VERITY_KT" | sed "s|$REPO_DIR/||")"
-    fi
-done
+# Kotlin SDK
+VERITY_KT="$REPO_DIR/sdks/kotlin/src/main/kotlin/xyz/atheon/verity/Verity.kt"
+if [ -f "$VERITY_KT" ]; then
+    sed -i '' -E "s|const val VERSION = \".*\"|const val VERSION = \"$VERSION\"|" "$VERITY_KT"
+    echo "  Updated Verity.kt"
+fi
 
 # JS SDK
 PACKAGE_JSON="$REPO_DIR/sdks/js/package.json"

@@ -4,9 +4,9 @@ on:
   workflow_call:
     inputs:
       targets:
-        description: "Comma-separated: ios,android,wasm,native,jvm"
+        description: "Comma-separated: ios,android,wasm,native"
         required: false
-        default: "ios,android,wasm,native,jvm"
+        default: "ios,android,wasm,native"
         type: string
       rust-toolchain:
         description: "Rust toolchain to use"
@@ -33,7 +33,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
-          targets: aarch64-apple-ios,aarch64-apple-ios-sim,aarch64-apple-darwin,x86_64-apple-darwin
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
       - uses: actions/cache@v4
         with:
           path: |
@@ -43,11 +43,11 @@ jobs:
             ~/.cargo/git
           key: rust-ios-${{ inputs.rust-toolchain }}-${{ hashFiles('core/Cargo.lock') }}-${{ inputs.provekit-ref }}
           restore-keys: rust-ios-${{ inputs.rust-toolchain }}-
-      - name: Build iOS + macOS
+      - name: Build iOS
         run: bash core/build/build-ios.sh provekit
       - name: Record artifact sizes
         run: |
-          echo "## Apple Artifact Sizes" >> "$GITHUB_STEP_SUMMARY"
+          echo "## iOS Artifact Sizes" >> "$GITHUB_STEP_SUMMARY"
           find output/ \( -name '*.a' -o -name '*.xcframework' \) -print0 | while IFS= read -r -d '' f; do
             size=$(du -sh "$f" | cut -f1)
             echo "- \`$(basename "$f")\`: $size" >> "$GITHUB_STEP_SUMMARY"
@@ -121,57 +121,6 @@ jobs:
         with:
           name: core-wasm
           path: output/wasm/
-          retention-days: 7
-
-  build-jvm:
-    if: contains(inputs.targets, 'jvm')
-    strategy:
-      matrix:
-        include:
-          - os: macos-14
-            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
-          - os: ubuntu-latest
-            rust-targets: x86_64-unknown-linux-gnu
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          repository: worldfnd/provekit
-          ref: ${{ inputs.provekit-ref }}
-          path: provekit
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ inputs.rust-toolchain }}
-          targets: ${{ matrix.rust-targets }}
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-      - uses: actions/cache@v4
-        with:
-          path: |
-            core/target
-            provekit/target
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: rust-jvm-${{ matrix.os }}-${{ inputs.rust-toolchain }}-${{ hashFiles('core/Cargo.lock') }}-${{ inputs.provekit-ref }}
-          restore-keys: rust-jvm-${{ matrix.os }}-${{ inputs.rust-toolchain }}-
-      - name: Build Rust static libs
-        run: |
-          IFS=',' read -ra TARGETS <<< "${{ matrix.rust-targets }}"
-          for target in "${TARGETS[@]}"; do
-            echo "Building provekit-ffi for $target..."
-            cd provekit && cargo build --release --target "$target" -p provekit-ffi && cd ..
-            echo "Building barretenberg-ffi for $target..."
-            cd core && cargo build --release --target "$target" -p barretenberg-ffi && cd ..
-          done
-      - name: Build JVM shared libraries
-        run: bash core/build/build-jvm.sh provekit
-      - uses: actions/upload-artifact@v4
-        with:
-          name: core-jvm-${{ matrix.os }}
-          path: output/jvm/
           retention-days: 7
 
   build-native:

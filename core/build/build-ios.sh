@@ -24,8 +24,6 @@ source "$REPO_DIR/scripts/ensure-provekit.sh"
 
 IOS_DEVICE="aarch64-apple-ios"
 IOS_SIM="aarch64-apple-ios-sim"
-MACOS_ARM64="aarch64-apple-darwin"
-MACOS_X86="x86_64-apple-darwin"
 
 # Parse arguments
 _PROVEKIT_ARG=""
@@ -68,7 +66,6 @@ esac
 CARGO_PROFILE="${CARGO_PROFILE:-release-mobile}"
 PROVEKIT_PROFILE="${PROVEKIT_PROFILE:-$CARGO_PROFILE}"
 IOS_DEPLOYMENT_TARGET="${IPHONEOS_DEPLOYMENT_TARGET:-15.0}"
-MACOS_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-13.0}"
 export IPHONEOS_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
 export CMAKE_OSX_DEPLOYMENT_TARGET="$IOS_DEPLOYMENT_TARGET"
 export CARGO_PROFILE_RELEASE_MOBILE_DEBUG=0
@@ -76,17 +73,16 @@ export CARGO_PROFILE_RELEASE_MOBILE_DEBUG=0
 PROVEKIT_BRANCH=$(git -C "$PROVEKIT_ROOT" rev-parse --abbrev-ref HEAD)
 VERITY_BRANCH=$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD)
 
-echo "=== Building Verity core for iOS + macOS ==="
+echo "=== Building Verity core for iOS ==="
 echo "ProveKit root:    $PROVEKIT_ROOT"
 echo "ProveKit branch:  $PROVEKIT_BRANCH ($(git -C "$PROVEKIT_ROOT" rev-parse --short HEAD))"
 echo "Verity branch:    $VERITY_BRANCH ($(git -C "$REPO_DIR" rev-parse --short HEAD))"
 echo "Backends:         $BACKENDS (pk=$BUILD_PK, bb=$BUILD_BB)"
 echo "Cargo profile:    $CARGO_PROFILE (core), $PROVEKIT_PROFILE (provekit)"
 echo "iOS deployment:   $IOS_DEPLOYMENT_TARGET"
-echo "macOS deployment: $MACOS_DEPLOYMENT_TARGET"
 echo ""
 
-rustup target add "$IOS_DEVICE" "$IOS_SIM" "$MACOS_ARM64" "$MACOS_X86" 2>/dev/null || true
+rustup target add "$IOS_DEVICE" "$IOS_SIM" 2>/dev/null || true
 
 # --- Build ProveKit ---
 if $BUILD_PK; then
@@ -95,10 +91,6 @@ if $BUILD_PK; then
     cargo build --profile "$PROVEKIT_PROFILE" --target "$IOS_DEVICE" -p provekit-ffi
     echo "Building provekit-ffi for $IOS_SIM..."
     cargo build --profile "$PROVEKIT_PROFILE" --target "$IOS_SIM" -p provekit-ffi
-    echo "Building provekit-ffi for $MACOS_ARM64..."
-    MACOSX_DEPLOYMENT_TARGET="$MACOS_DEPLOYMENT_TARGET" cargo build --profile "$PROVEKIT_PROFILE" --target "$MACOS_ARM64" -p provekit-ffi
-    echo "Building provekit-ffi for $MACOS_X86..."
-    MACOSX_DEPLOYMENT_TARGET="$MACOS_DEPLOYMENT_TARGET" cargo build --profile "$PROVEKIT_PROFILE" --target "$MACOS_X86" -p provekit-ffi
     popd > /dev/null
 fi
 
@@ -109,24 +101,19 @@ if $BUILD_BB; then
     cargo build --profile "$CARGO_PROFILE" --target "$IOS_DEVICE" -p barretenberg-ffi
     echo "Building barretenberg-ffi for $IOS_SIM..."
     cargo build --profile "$CARGO_PROFILE" --target "$IOS_SIM" -p barretenberg-ffi
-    echo "Building barretenberg-ffi for $MACOS_ARM64..."
-    MACOSX_DEPLOYMENT_TARGET="$MACOS_DEPLOYMENT_TARGET" cargo build --profile "$CARGO_PROFILE" --target "$MACOS_ARM64" -p barretenberg-ffi
-    echo "Building barretenberg-ffi for $MACOS_X86..."
-    MACOSX_DEPLOYMENT_TARGET="$MACOS_DEPLOYMENT_TARGET" cargo build --profile "$CARGO_PROFILE" --target "$MACOS_X86" -p barretenberg-ffi
     popd > /dev/null
 fi
 
 # --- Merge static libraries ---
 echo "Preparing static libraries..."
 MERGED_DIR=$(mktemp -d)
-mkdir -p "$MERGED_DIR/ios-arm64" "$MERGED_DIR/ios-arm64-sim" "$MERGED_DIR/macos-arm64" "$MERGED_DIR/macos-x86_64"
+mkdir -p "$MERGED_DIR/ios-arm64" "$MERGED_DIR/ios-arm64-sim"
 
-for arch_pair in "$IOS_DEVICE:ios-arm64" "$IOS_SIM:ios-arm64-sim" "$MACOS_ARM64:macos-arm64" "$MACOS_X86:macos-x86_64"; do
+for arch_pair in "$IOS_DEVICE:ios-arm64" "$IOS_SIM:ios-arm64-sim"; do
     RUST_TARGET="${arch_pair%%:*}"
     ARCH_DIR="${arch_pair##*:}"
     LIBS_TO_MERGE=()
 
-    # macOS targets use the ProveKit profile dir same as iOS
     if $BUILD_PK; then
         LIBS_TO_MERGE+=("$PROVEKIT_ROOT/target/$RUST_TARGET/$PROVEKIT_PROFILE/libprovekit_ffi.a")
     fi
@@ -142,24 +129,14 @@ for arch_pair in "$IOS_DEVICE:ios-arm64" "$IOS_SIM:ios-arm64-sim" "$MACOS_ARM64:
     fi
 done
 
-# Create universal macOS binary
-echo "Creating universal macOS binary..."
-mkdir -p "$MERGED_DIR/macos-universal"
-lipo -create \
-    "$MERGED_DIR/macos-arm64/libverity.a" \
-    "$MERGED_DIR/macos-x86_64/libverity.a" \
-    -output "$MERGED_DIR/macos-universal/libverity.a"
-
 # Strip debug symbols
 echo "Stripping debug symbols..."
 strip -S -x "$MERGED_DIR/ios-arm64/libverity.a"
 strip -S -x "$MERGED_DIR/ios-arm64-sim/libverity.a"
-strip -S -x "$MERGED_DIR/macos-universal/libverity.a"
 
 echo "Library sizes:"
 ls -lh "$MERGED_DIR/ios-arm64/libverity.a"
 ls -lh "$MERGED_DIR/ios-arm64-sim/libverity.a"
-ls -lh "$MERGED_DIR/macos-universal/libverity.a"
 
 # --- Create XCFramework ---
 HEADERS_DIR=$(mktemp -d)
@@ -181,8 +158,6 @@ xcodebuild -create-xcframework \
     -headers "$HEADERS_DIR" \
     -library "$MERGED_DIR/ios-arm64-sim/libverity.a" \
     -headers "$HEADERS_DIR" \
-    -library "$MERGED_DIR/macos-universal/libverity.a" \
-    -headers "$HEADERS_DIR" \
     -output "$OUTPUT_DIR/Verity.xcframework"
 
 # Write a marker so Package.swift knows which backends are available
@@ -190,4 +165,4 @@ echo "$BACKENDS" > "$OUTPUT_DIR/Verity.xcframework/backends"
 
 rm -rf "$HEADERS_DIR" "$MERGED_DIR"
 
-echo "=== Done: $OUTPUT_DIR/Verity.xcframework (backends: $BACKENDS, platforms: iOS + macOS) ==="
+echo "=== Done: $OUTPUT_DIR/Verity.xcframework (backends: $BACKENDS) ==="
