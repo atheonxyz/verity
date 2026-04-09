@@ -68,6 +68,28 @@ public final class ProverScheme: @unchecked Sendable {
         return Proof(data: Data(bytes: ptr, count: Int(buf.len)))
     }
 
+    // MARK: - Async
+
+    /// Generate a proof from witness values (async).
+    ///
+    /// Dispatches the FFI call to a background queue so the caller is not blocked.
+    /// The underlying lock serializes operations on this handle — for concurrent
+    /// proving, create multiple ``ProverScheme`` instances from the same file.
+    ///
+    /// - Parameter witness: A ``Witness`` containing the circuit's private inputs.
+    /// - Returns: A ``Proof`` containing the proof bytes.
+    public func prove(witness: Witness) async throws -> Proof {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.prove(witness: witness))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
     // MARK: - Save / Serialize
 
     /// Save the prover scheme to a file.
@@ -90,6 +112,25 @@ public final class ProverScheme: @unchecked Sendable {
         try save(to: url.path)
     }
 
+    /// Save the prover scheme to a file (async).
+    public func save(to path: String) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    try self.save(to: path)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Save the prover scheme to a URL (async).
+    public func save(to url: URL) async throws {
+        try await save(to: url.path)
+    }
+
     /// Serialize the prover scheme to bytes.
     ///
     /// The output is the same format as ``save(to:)`` writes to disk.
@@ -110,5 +151,18 @@ public final class ProverScheme: @unchecked Sendable {
             throw VerityError.serializationError
         }
         return Data(bytes: ptr, count: Int(buf.len))
+    }
+
+    /// Serialize the prover scheme to bytes (async).
+    public func serialize() async throws -> Data {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.serialize())
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
     }
 }
