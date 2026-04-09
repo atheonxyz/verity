@@ -38,4 +38,42 @@ final class VerityNativeIntegrationTests: XCTestCase {
             XCTAssertEqual(error as? VerityError, .unknownBackend)
         }
     }
+
+    func testAsyncProveKitLoadProveVerify() async throws {
+        let verity = try Verity(backend: .provekit)
+        let prover = try await verity.loadProver(from: fixturePath("prover.pkp"))
+        let verifier = try await verity.loadVerifier(from: fixturePath("verifier.pkv"))
+        let witness = try Witness.load(from: fixturePath("Prover.toml"))
+        let proof = try await prover.prove(witness: witness)
+        XCTAssertFalse(proof.data.isEmpty)
+        let valid = try await verifier.verify(proof: proof)
+        XCTAssertTrue(valid)
+    }
+
+    func testMmapLoadProveVerify() throws {
+        let verity = try Verity(backend: .provekit)
+        let prover = try verity.loadProver(mappedFrom: fixturePath("prover.pkp"))
+        let verifier = try verity.loadVerifier(mappedFrom: fixturePath("verifier.pkv"))
+        let proof = try prover.prove(witness: try Witness.load(from: fixturePath("Prover.toml")))
+        XCTAssertFalse(proof.data.isEmpty)
+        XCTAssertTrue(try verifier.verify(proof: proof))
+    }
+
+    func testAsyncMmapLoadProveVerify() async throws {
+        let verity = try Verity(backend: .provekit)
+        let prover = try await verity.loadProver(mappedFrom: fixturePath("prover.pkp"))
+        let verifier = try await verity.loadVerifier(mappedFrom: fixturePath("verifier.pkv"))
+        let witness = try Witness.load(from: fixturePath("Prover.toml"))
+        let proof = try await prover.prove(witness: witness)
+        XCTAssertFalse(proof.data.isEmpty)
+        let valid = try await verifier.verify(proof: proof)
+        XCTAssertTrue(valid)
+    }
+
+    func testMmapLoadNonexistentFileThrows() {
+        let verity = try! Verity(backend: .provekit)
+        XCTAssertThrowsError(try verity.loadProver(mappedFrom: "/nonexistent/prover.pkp")) { error in
+            XCTAssertEqual(error as? VerityError, .schemeReadError)
+        }
+    }
 }
