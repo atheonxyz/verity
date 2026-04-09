@@ -173,6 +173,7 @@ jobs:
   # ── Post-release: update Package.swift checksums ───────────────
 
   post-release:
+    if: always() && needs.publish-swift.result == 'success'
     needs: [validate, publish-swift, publish-kotlin, publish-js]
     runs-on: macos-14
     permissions:
