@@ -14,9 +14,13 @@ check() {
   fi
 }
 
-# Kotlin — Verity.kt
+# Kotlin (Android) — Verity.kt
 KT_VER=$(grep -oP 'const val VERSION = "\K[^"]+' sdks/kotlin/src/main/kotlin/xyz/atheon/verity/Verity.kt 2>/dev/null || echo "NOT_FOUND")
 check "Verity.kt" "$KT_VER" "Kotlin SDK"
+
+# Kotlin (JVM) — Verity.kt
+KT_JVM_VER=$(grep -oP 'const val VERSION = "\K[^"]+' sdks/kotlin-jvm/src/main/kotlin/xyz/atheon/verity/Verity.kt 2>/dev/null || echo "NOT_FOUND")
+check "Verity.kt (JVM)" "$KT_JVM_VER" "Kotlin JVM SDK"
 
 # Swift — Verity.swift
 SW_VER=$(grep -oP 'static let version = "\K[^"]+' sdks/swift/Sources/Verity/Verity.swift 2>/dev/null || echo "NOT_FOUND")

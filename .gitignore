@@ -3,6 +3,9 @@ output/
 core/target/
 /.build/
 
+# ProveKit (auto-cloned dependency)
+provekit/
+
 # Swift
 sdks/swift/.build/
 sdks/swift/DerivedData/

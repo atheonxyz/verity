@@ -4,13 +4,17 @@ set -euo pipefail
 # Build core libraries for Android (arm64-v8a + x86_64).
 #
 # Usage:
-#   bash core/build/build-android.sh <provekit-path> [--backends provekit|bb|all]
+#   bash core/build/build-android.sh [provekit-path] [--backends provekit|bb|all]
+#
+# If provekit-path is omitted, defaults to ./provekit at the repo root.
+# If ProveKit is not found, it is cloned automatically and checked out to v1.
 #
 # Examples:
-#   bash core/build/build-android.sh ../provekit                     # All backends (default)
-#   bash core/build/build-android.sh ../provekit --backends provekit  # ProveKit only
-#   bash core/build/build-android.sh ../provekit --backends bb        # Barretenberg only
-#   bash core/build/build-android.sh ../provekit --backends all       # Both
+#   bash core/build/build-android.sh                         # Auto-detect / clone ProveKit
+#   bash core/build/build-android.sh provekit                # Explicit path (repo root)
+#   bash core/build/build-android.sh --backends provekit     # ProveKit only
+#   bash core/build/build-android.sh --backends bb           # Barretenberg only
+#   bash core/build/build-android.sh --backends all          # Both
 #
 # Environment:
 #   ANDROID_NDK_HOME  — path to Android NDK (auto-detected if not set)
@@ -21,8 +25,10 @@ CORE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$CORE_DIR/.." && pwd)"
 OUTPUT_DIR="$REPO_DIR/output/android"
 
+source "$REPO_DIR/scripts/ensure-provekit.sh"
+
 # Parse arguments
-PROVEKIT_ROOT=""
+_PROVEKIT_ARG=""
 BACKENDS="provekit"
 
 while [ $# -gt 0 ]; do
@@ -32,8 +38,8 @@ while [ $# -gt 0 ]; do
             shift 2
             ;;
         *)
-            if [ -z "$PROVEKIT_ROOT" ]; then
-                PROVEKIT_ROOT="$(cd "$1" && pwd)"
+            if [ -z "$_PROVEKIT_ARG" ]; then
+                _PROVEKIT_ARG="$1"
             else
                 echo "ERROR: Unknown argument '$1'"
                 exit 1
@@ -43,15 +49,8 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-if [ -z "$PROVEKIT_ROOT" ]; then
-    echo "Usage: bash core/build/build-android.sh <provekit-path> [--backends provekit|bb|all]"
-    exit 1
-fi
-
-if [ ! -f "$PROVEKIT_ROOT/Cargo.toml" ]; then
-    echo "ERROR: Cannot find provekit repo at $PROVEKIT_ROOT"
-    exit 1
-fi
+# Resolve ProveKit: use explicit arg, or default to $REPO_DIR/provekit (auto-clone if missing)
+ensure_provekit "${_PROVEKIT_ARG:-$REPO_DIR/provekit}"
 
 # Resolve backend flags
 BUILD_PK=false

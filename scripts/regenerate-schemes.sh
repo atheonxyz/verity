@@ -11,16 +11,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-PROVEKIT_ROOT="${1:-$(cd "$REPO_DIR/../provekit" && pwd)}"
+
+source "$REPO_DIR/scripts/ensure-provekit.sh"
+ensure_provekit "${1:-$REPO_DIR/provekit}"
 
 IOS_CIRCUITS="$REPO_DIR/examples/ios/VerityDemo/VerityDemo/Resources/circuits"
 ANDROID_CIRCUITS="$REPO_DIR/examples/android/VerityDemo/app/src/main/assets/circuits"
-
-if [ ! -f "$PROVEKIT_ROOT/Cargo.toml" ]; then
-    echo "ERROR: Cannot find provekit repo at $PROVEKIT_ROOT"
-    echo "Usage: bash scripts/regenerate-schemes.sh [provekit-path]"
-    exit 1
-fi
 
 echo "=== Regenerating .pkp/.pkv scheme files ==="
 echo "ProveKit: $PROVEKIT_ROOT ($(git -C "$PROVEKIT_ROOT" rev-parse --short HEAD))"

@@ -8,14 +8,15 @@ Verity is a zero-knowledge proof SDK for iOS, Android, and JavaScript/Node.js. I
 
 ## Build Commands
 
-All core builds require ProveKit as a sibling directory (default `../provekit`):
+All core builds require ProveKit. If not found at `provekit/` in the repo root,
+build scripts will automatically clone it and checkout the `v1` branch:
 
 ```bash
-make core-ios PROVEKIT_PATH=../provekit    # iOS (aarch64 device + simulator)
-make core-android PROVEKIT_PATH=../provekit # Android NDK
+make core-ios                               # iOS (aarch64 device + simulator)
+make core-android                           # Android NDK
 make core-wasm                              # WebAssembly
 make core-native                            # Host platform (for testing)
-make core-all PROVEKIT_PATH=../provekit     # All targets
+make core-all                               # All targets
 ```
 
 ## Testing
@@ -129,8 +130,8 @@ Each backend (`pk_*`, `bb_*`) implements the 16 functions and registers via `__a
 ### Canonical references
 
 - Vtable definition: `core/dispatcher/verity_backend.h`
-- ProveKit FFI header: `../provekit/tooling/provekit-ffi/include/provekit_ffi.h`
-- Architecture spec: `../provekit/docs/sdk-architecture.md`
+- ProveKit FFI header: `provekit/tooling/provekit-ffi/include/provekit_ffi.h`
+- Architecture spec: `provekit/docs/sdk-architecture.md`
 
 ### When changing ANY layer, verify:
 

@@ -13,7 +13,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SDK_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_DIR="$(cd "$SDK_DIR/../.." && pwd)"
-PROVEKIT_ROOT="${PROVEKIT_ROOT:-$(cd "$REPO_DIR/../provekit" 2>/dev/null && pwd || echo "")}"
+PROVEKIT_ROOT="${PROVEKIT_ROOT:-$(cd "$REPO_DIR/provekit" 2>/dev/null && pwd || echo "")}"
 CORE_DIR="$REPO_DIR/core"
 DISPATCHER_DIR="$CORE_DIR/dispatcher"
 INCLUDE_DIR="$CORE_DIR/include"
@@ -146,7 +146,7 @@ for entry in "${TARGETS[@]}"; do
 
     if [ -z "$LINK_LIBS" ]; then
         echo "  WARNING: No static libraries found in $ANDROID_OUTPUT_DIR"
-        echo "  Run 'make core-android PROVEKIT_PATH=../provekit' first."
+        echo "  Run 'make core-android' first."
         continue
     fi
 
