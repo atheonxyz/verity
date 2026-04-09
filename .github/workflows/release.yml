@@ -184,6 +184,8 @@ jobs:
         with:
           name: core-ios
           path: output/
+      - name: Checkout main branch
+        run: git checkout main && git pull
       - name: Update Package.swift checksums
         if: ${{ !inputs.dry_run }}
         run: |
