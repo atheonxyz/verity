@@ -24,11 +24,11 @@ prover.dispose();
 verifier.dispose();
 ```
 
-This matches the Swift and Kotlin SDK patterns:
+This matches the Swift/Kotlin SDK patterns:
 - `Verity` is a factory — loads provers/verifiers, initializes backends.
 - `ProverScheme` owns `prove()` — primary API, not a convenience.
 - `VerifierScheme` owns `verify()` — primary API.
-- `Verity.prove()` / `Verity.verify()` exist as convenience delegators.
+- `Verity.prove()` / `Verity.verify()` exist as convenience delegators (matches Swift; Kotlin omits these).
 
 ## Breaking Changes
 
@@ -110,6 +110,8 @@ class Proof {
   readonly data: Uint8Array;
   readonly size: number;
   readonly hex: string;
+
+  private constructor(data: Uint8Array);
 
   hexPreview(maxBytes?: number): string;
 
@@ -278,7 +280,7 @@ sdks/js/
     index.ts                — barrel exports (add Proof)
     verity.ts               — update resolveBinding(), add options param, add convenience methods
     types.ts                — update ProverScheme/VerifierScheme interfaces, add Proof class
-    errors.ts               — unchanged
+    errors.ts               — fix error code 10 collision, add RESOURCE_CLOSED
     browser.ts              — browser entry point (unchanged)
     node.ts                 — node entry point (unchanged, stub)
     backends/
@@ -344,14 +346,18 @@ VerityError(BACKEND_UNAVAILABLE, "ProveKit browser backend requires @noir-lang/n
 
 ### WASM Artifacts
 
-`make core-wasm` (updated) builds ProveKit WASM and stages to `sdks/js/wasm/`:
+`make core-wasm` is extended (not replaced) with a new ProveKit WASM build step. The existing `build-wasm.sh` loop over `core/backends/*/backend.toml` continues to handle Barretenberg vendor WASM and future `rust-wasm` backends. The ProveKit build is a new addition alongside it.
+
+Steps for the ProveKit WASM build:
 
 1. Clone/update ProveKit if not present (`provekit/` at repo root)
-2. `cargo build --release --target wasm32-unknown-unknown -p provekit-wasm -Z build-std=panic_abort,std`
+2. `cargo +nightly build --release --target wasm32-unknown-unknown -p provekit-wasm -Z build-std=panic_abort,std` (requires nightly Rust — `-Z build-std` is unstable, needed for atomics/SharedArrayBuffer support)
 3. `wasm-bindgen --target web --out-dir sdks/js/wasm/ ...`
 4. Copy snippets, patch worker helper imports
 
 The `wasm/` directory is `.gitignore`d — built artifacts, not source.
+
+`Verity.version` is populated from `package.json` at build time (via tsup `define`).
 
 ### tsup Build
 
