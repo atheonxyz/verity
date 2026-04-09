@@ -2,6 +2,9 @@
 output/
 core/target/
 
+# ProveKit (auto-cloned dependency)
+provekit/
+
 # Swift
 sdks/swift/.build/
 sdks/swift/DerivedData/

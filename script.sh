@@ -1,6 +1,6 @@
 # # IOS
-# make core-ios PROVEKIT_PATH=../provekit
-# # make core-ios PROVEKIT_PATH=../provekit BACKENDS=all
+# make core-ios PROVEKIT_PATH=provekit
+# # make core-ios PROVEKIT_PATH=provekit BACKENDS=all
 # # Regenerate precompiled schemes (only if it is needed)
 # bash scripts/regenerate-schemes.sh
 # # Open in Xcode and run (Cmd+R)
@@ -10,8 +10,8 @@
 
 
 # Android 
-# make core-android PROVEKIT_PATH=../provekit                # Both backends
-make core-android PROVEKIT_PATH=../provekit BACKENDS=provekit  # PK only (faster)
+# make core-android PROVEKIT_PATH=provekit                # Both backends
+make core-android PROVEKIT_PATH=provekit BACKENDS=provekit  # PK only (faster)
 bash sdks/kotlin/scripts/build-android.sh
 bash scripts/regenerate-schemes.sh
 cd examples/android/VerityDemo && ./gradlew assembleDebug

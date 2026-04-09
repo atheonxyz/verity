@@ -24,20 +24,21 @@ rustup target add wasm32-unknown-unknown
 
 ## Building Core
 
-All iOS and Android builds require a sibling ProveKit checkout:
+All iOS and Android builds require ProveKit. If not already present, the build
+scripts will automatically clone it into `provekit/` at the repo root and
+checkout the `v1` branch. You can also clone it manually:
 
 ```bash
-# One-time setup: clone ProveKit
-git clone https://github.com/worldfnd/provekit ../provekit
-cd ../provekit && git checkout v1 && cd -
+git clone https://github.com/worldfnd/provekit provekit
+cd provekit && git checkout v1 && cd ..
 ```
 
 ```bash
 # iOS (device + simulator xcframework)
-make core-ios PROVEKIT_PATH=../provekit
+make core-ios
 
 # Android NDK
-make core-android PROVEKIT_PATH=../provekit
+make core-android
 
 # WASM (browser)
 make core-wasm
@@ -46,13 +47,19 @@ make core-wasm
 make core-native
 
 # All targets
-make core-all PROVEKIT_PATH=../provekit
+make core-all
+```
+
+To use a ProveKit checkout at a custom path:
+
+```bash
+make core-ios PROVEKIT_PATH=/path/to/provekit
 ```
 
 The default cargo profile is `release-mobile` (size-optimized). Override with:
 
 ```bash
-CARGO_PROFILE=release make core-ios PROVEKIT_PATH=../provekit
+CARGO_PROFILE=release make core-ios
 ```
 
 ## Testing
@@ -88,15 +95,9 @@ make check
 
 ## Releasing
 
-Release scripts live in `core/release/`. The Makefile wires them up:
-
-```bash
-make release-swift                       # zip xcframework + checksum + gh command
-make release-kotlin                      # publish to Maven Central (needs GPG + Sonatype env vars)
-make release-js                          # publish to npm (needs NPM_TOKEN)
-```
-
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for the full release process.
+Releases are handled by the unified **Release** workflow (`workflow_dispatch`),
+which builds all targets, tests all SDKs, and publishes to GitHub Releases,
+Maven Central, and npm in one run. See [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Cleaning
 
@@ -115,7 +116,6 @@ make version                             # print current version from VERSION fi
 ```
 core/
 ├── build/          # Per-target build scripts (build-ios.sh, build-android.sh, etc.)
-├── release/        # Per-platform release scripts (release-ios.sh, release-android.sh, etc.)
 ├── dispatcher/     # C vtable router (verity_dispatch.c)
 ├── include/        # Public C headers (verity_ffi.h, verity_ffi_raw.h)
 └── backends/       # Rust FFI crates (barretenberg/)

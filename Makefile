@@ -1,5 +1,5 @@
 VERSION := $(shell cat VERSION)
-PROVEKIT_PATH ?= ../provekit
+PROVEKIT_PATH ?= provekit
 BACKENDS ?=
 CARGO_PROFILE ?= release-mobile
 
@@ -47,18 +47,6 @@ test-fixtures: core-native
 	@echo "Generating test fixtures..."
 	bash tests/gen-fixtures.sh
 
-# ── Releases ───────────────────────────────────────────────────────────
-
-.PHONY: release-swift release-kotlin release-js
-
-release-swift: core-ios
-	bash core/release/release-ios.sh $(VERSION)
-
-release-kotlin: core-android
-	bash core/release/release-android.sh $(VERSION)
-
-release-js: core-wasm core-native
-	bash core/release/release-js.sh $(VERSION)
 
 # ── Lint & Format ─────────────────────────────────────────────────────
 
