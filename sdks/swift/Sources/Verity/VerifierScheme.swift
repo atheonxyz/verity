@@ -67,6 +67,28 @@ public final class VerifierScheme: @unchecked Sendable {
         }
     }
 
+    // MARK: - Async
+
+    /// Verify a proof (async).
+    ///
+    /// Dispatches the FFI call to a background queue so the caller is not blocked.
+    /// The underlying lock serializes operations on this handle — for concurrent
+    /// verification, create multiple ``VerifierScheme`` instances from the same file.
+    ///
+    /// - Parameter proof: A ``Proof`` from ``ProverScheme/prove(witness:)``.
+    /// - Returns: `true` if proof is valid, `false` if mathematically invalid.
+    public func verify(proof: Proof) async throws -> Bool {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.verify(proof: proof))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
     // MARK: - Save / Serialize
 
     /// Save the verifier scheme to a file.
@@ -89,6 +111,25 @@ public final class VerifierScheme: @unchecked Sendable {
         try save(to: url.path)
     }
 
+    /// Save the verifier scheme to a file (async).
+    public func save(to path: String) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    try self.save(to: path)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Save the verifier scheme to a URL (async).
+    public func save(to url: URL) async throws {
+        try await save(to: url.path)
+    }
+
     /// Serialize the verifier scheme to bytes.
     ///
     /// The output is the same format as ``save(to:)`` writes to disk.
@@ -109,5 +150,18 @@ public final class VerifierScheme: @unchecked Sendable {
             throw VerityError.serializationError
         }
         return Data(bytes: ptr, count: Int(buf.len))
+    }
+
+    /// Serialize the verifier scheme to bytes (async).
+    public func serialize() async throws -> Data {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.serialize())
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
     }
 }
