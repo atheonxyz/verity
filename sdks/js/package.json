@@ -1,6 +1,6 @@
 {
   "name": "@atheon/verity",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Zero-knowledge proof SDK for Node.js and browsers",
   "license": "MIT",
   "repository": {
