@@ -83,6 +83,8 @@ jobs:
           restore-keys: rust-android-${{ inputs.rust-toolchain }}-
       - name: Build Android
         run: bash core/build/build-android.sh provekit
+      - name: Build JNI shared libraries
+        run: bash sdks/kotlin/scripts/build-android.sh
       - name: Record artifact sizes
         run: |
           echo "## Android Artifact Sizes" >> "$GITHUB_STEP_SUMMARY"
@@ -93,7 +95,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: core-android
-          path: output/android/
+          path: sdks/kotlin/src/main/jniLibs/
           retention-days: 7
 
   build-wasm:

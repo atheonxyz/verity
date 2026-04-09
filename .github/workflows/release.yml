@@ -128,17 +128,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: core-android
-          path: output/android/
+          path: sdks/kotlin/src/main/jniLibs/
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
-      - name: Copy native libs to jniLibs
-        if: ${{ !inputs.dry_run }}
-        run: |
-          mkdir -p sdks/kotlin/src/main/jniLibs/arm64-v8a sdks/kotlin/src/main/jniLibs/x86_64
-          cp output/android/arm64-v8a/*.so sdks/kotlin/src/main/jniLibs/arm64-v8a/
-          cp output/android/x86_64/*.so sdks/kotlin/src/main/jniLibs/x86_64/
       - name: Publish to Maven Central
         if: ${{ !inputs.dry_run }}
         run: |
