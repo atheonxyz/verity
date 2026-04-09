@@ -94,7 +94,7 @@ class Verity(private val backend: Backend) {
 
     companion object {
         /** The SDK version string (e.g., `"0.2.0"`). */
-        const val VERSION = "0.3.2"
+        const val VERSION = "0.3.3"
 
         /**
          * Configure the ProveKit memory allocator.

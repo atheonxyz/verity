@@ -28,7 +28,7 @@ Integrate via Swift Package Manager in `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/atheonxyz/verity", from: "0.3.2")
+    .package(url: "https://github.com/atheonxyz/verity", from: "0.3.3")
 ],
 targets: [
     .target(name: "MyApp", dependencies: [
