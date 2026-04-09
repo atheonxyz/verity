@@ -76,4 +76,27 @@ final class VerityUnitTests: XCTestCase {
         let destination = try FileManager.default.destinationOfSymbolicLink(atPath: dispatchPath)
         XCTAssertEqual(destination, "../../core/dispatcher")
     }
+
+    func testHexAllByteValues() {
+        let allBytes = Data(0...255)
+        let expected = (0...255).map { String(format: "%02x", $0) }.joined()
+        let proof = Proof(data: allBytes)
+        XCTAssertEqual(proof.hex, expected)
+    }
+
+    func testHexEmptyProof() {
+        let proof = Proof(data: Data())
+        XCTAssertEqual(proof.hex, "")
+    }
+
+    func testHexPreviewAllBytes() {
+        let proof = Proof(data: Data(0...255))
+        let preview = proof.hexPreview(maxBytes: 4)
+        XCTAssertEqual(preview, "00010203...")
+    }
+
+    func testHexPreviewShortProof() {
+        let proof = Proof(data: Data([0xab, 0xcd]))
+        XCTAssertEqual(proof.hexPreview(maxBytes: 4), "abcd")
+    }
 }
