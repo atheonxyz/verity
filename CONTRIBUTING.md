@@ -36,17 +36,12 @@ make test-js
 
 All SDKs share a single version from the root `VERSION` file.
 
-1. Update `VERSION`:
-   ```bash
-   echo "0.4.0" > VERSION
-   ```
-
-2. Sync all SDK version strings:
+1. Bump all SDK versions (updates `VERSION` file and all SDK version strings):
    ```bash
    bash scripts/bump-version.sh 0.4.0
    ```
 
-3. Commit, tag, and push — the release workflow triggers automatically on tag push:
+2. Commit, tag, and push — the release workflow triggers automatically on tag push:
    ```bash
    git add -A
    git commit -m "chore: bump version to 0.4.0"
