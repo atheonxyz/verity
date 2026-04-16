@@ -1,3 +1,4 @@
+![Banner](./wordmark.png)
 # Verity
 
 [![CI](https://github.com/atheonxyz/verity/actions/workflows/ci.yml/badge.svg)](https://github.com/atheonxyz/verity/actions/workflows/ci.yml)
