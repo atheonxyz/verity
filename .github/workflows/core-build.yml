@@ -103,16 +103,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: worldfnd/provekit
+          ref: ${{ inputs.provekit-ref }}
+          path: provekit
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
           targets: wasm32-unknown-unknown
+          components: rust-src
       - name: Install wasm-pack
-        run: cargo install wasm-pack --locked
+        run: |
+          cargo install wasm-pack --locked
+          cargo install wasm-bindgen-cli --locked
       - uses: actions/cache@v4
         with:
           path: |
-            core/target
+            .build/provekit-wasm-target
+            provekit/target
             ~/.cargo/registry
             ~/.cargo/git
           key: rust-wasm-${{ inputs.rust-toolchain }}-${{ hashFiles('core/Cargo.lock') }}
