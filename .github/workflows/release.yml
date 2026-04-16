@@ -46,6 +46,7 @@ jobs:
     with:
       targets: "ios,android,wasm,native"
       provekit-ref: "v1"
+      provekit-wasm-ref: "main"
 
   # ── Test all SDKs ──────────────────────────────────────────────
 
