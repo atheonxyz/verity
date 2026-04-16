@@ -44,6 +44,25 @@ patch_worker_helpers() {
     done < <(find "$snippets_dir" -name 'workerHelpers.js' -print0)
 }
 
+copy_existing_provekit_artifacts() {
+    local required_files=(
+        "provekit_wasm.js"
+        "provekit_wasm.d.ts"
+        "provekit_wasm_bg.wasm"
+        "provekit_wasm_bg.wasm.d.ts"
+    )
+
+    for file in "${required_files[@]}"; do
+        if [ ! -f "$JS_WASM_DIR/$file" ]; then
+            echo "ERROR: Missing committed ProveKit WASM artifact: $JS_WASM_DIR/$file"
+            return 1
+        fi
+    done
+
+    mkdir -p "$OUTPUT_DIR/provekit"
+    cp "$JS_WASM_DIR"/provekit_wasm* "$OUTPUT_DIR/provekit/"
+}
+
 echo "=== Building Verity core for WASM ==="
 
 ensure_provekit "$(resolve_provekit_path "${1:-}")"
@@ -51,44 +70,48 @@ ensure_provekit "$(resolve_provekit_path "${1:-}")"
 echo "ProveKit root: $PROVEKIT_ROOT"
 
 mkdir -p "$OUTPUT_DIR" "$JS_WASM_DIR"
-find "$JS_WASM_DIR" -mindepth 1 ! -name '.gitignore' -exec rm -rf {} +
 
 WASM_MANIFEST="$PROVEKIT_ROOT/tooling/provekit-wasm/Cargo.toml"
 
 if [ ! -f "$WASM_MANIFEST" ]; then
-    echo "ERROR: ProveKit WASM crate not found at $WASM_MANIFEST"
-    exit 1
-fi
+    echo "ProveKit WASM crate not found at $WASM_MANIFEST"
+    echo "Falling back to committed sdks/js/wasm artifacts."
+    copy_existing_provekit_artifacts
+else
+    find "$JS_WASM_DIR" -mindepth 1 ! -name '.gitignore' -exec rm -rf {} +
 
-echo "Building ProveKit WASM package..."
-pushd "$PROVEKIT_ROOT" > /dev/null
-cargo build \
-    --release \
-    --target wasm32-unknown-unknown \
-    -p provekit-wasm \
-    --target-dir "$TARGET_DIR" \
-    -Z build-std=panic_abort,std
-popd > /dev/null
+    echo "Building ProveKit WASM package..."
+    pushd "$PROVEKIT_ROOT" > /dev/null
+    cargo build \
+        --release \
+        --target wasm32-unknown-unknown \
+        -p provekit-wasm \
+        --target-dir "$TARGET_DIR" \
+        -Z build-std=panic_abort,std
+    popd > /dev/null
 
-wasm-bindgen \
-    --target web \
-    --out-dir "$JS_WASM_DIR" \
-    "$TARGET_DIR/wasm32-unknown-unknown/release/provekit_wasm.wasm"
+    wasm-bindgen \
+        --target web \
+        --out-dir "$JS_WASM_DIR" \
+        "$TARGET_DIR/wasm32-unknown-unknown/release/provekit_wasm.wasm"
 
-patch_worker_helpers "$JS_WASM_DIR"
+    patch_worker_helpers "$JS_WASM_DIR"
 
-if command -v wasm-opt >/dev/null 2>&1; then
-    wasm-opt \
-        -O3 \
-        --enable-simd \
-        --enable-threads \
-        --enable-bulk-memory \
-        --enable-mutable-globals \
-        --enable-nontrapping-float-to-int \
-        --enable-sign-ext \
-        --fast-math \
-        -o "$JS_WASM_DIR/provekit_wasm_bg.wasm" \
-        "$JS_WASM_DIR/provekit_wasm_bg.wasm"
+    if command -v wasm-opt >/dev/null 2>&1; then
+        wasm-opt \
+            -O3 \
+            --enable-simd \
+            --enable-threads \
+            --enable-bulk-memory \
+            --enable-mutable-globals \
+            --enable-nontrapping-float-to-int \
+            --enable-sign-ext \
+            --fast-math \
+            -o "$JS_WASM_DIR/provekit_wasm_bg.wasm" \
+            "$JS_WASM_DIR/provekit_wasm_bg.wasm"
+    fi
+
+    copy_existing_provekit_artifacts
 fi
 
 for backend_dir in "$CORE_DIR"/backends/*/; do
