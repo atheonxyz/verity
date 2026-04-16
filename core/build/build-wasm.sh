@@ -59,8 +59,10 @@ copy_existing_provekit_artifacts() {
         fi
     done
 
+    rm -rf "$OUTPUT_DIR/provekit"
     mkdir -p "$OUTPUT_DIR/provekit"
-    cp "$JS_WASM_DIR"/provekit_wasm* "$OUTPUT_DIR/provekit/"
+    cp -R "$JS_WASM_DIR"/. "$OUTPUT_DIR/provekit/"
+    rm -f "$OUTPUT_DIR/provekit/.gitignore"
 }
 
 echo "=== Building Verity core for WASM ==="

@@ -46,7 +46,7 @@ jobs:
     with:
       targets: "ios,android,wasm,native"
       provekit-ref: "v1"
-      provekit-wasm-ref: "main"
+      provekit_wasm_ref: "main"
 
   # ── Test all SDKs ──────────────────────────────────────────────
 
@@ -80,6 +80,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: core-wasm
+          path: output/wasm/
+      - name: Provision JS WASM artifacts
+        run: |
+          mkdir -p sdks/js/wasm
+          cp -R output/wasm/provekit/. sdks/js/wasm/
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -154,6 +162,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: core-wasm
+          path: output/wasm/
+      - name: Provision JS WASM artifacts
+        run: |
+          mkdir -p sdks/js/wasm
+          cp -R output/wasm/provekit/. sdks/js/wasm/
       - uses: actions/setup-node@v4
         with:
           node-version: 20
