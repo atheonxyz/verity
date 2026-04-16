@@ -25,6 +25,7 @@ local.properties
 sdks/kotlin/build/
 
 # JavaScript / Node
+node_modules/
 sdks/js/node_modules/
 sdks/js/dist/
 *.node
@@ -43,6 +44,8 @@ docs/superpowers/
 # Pre-compiled schemes (regenerate with scripts/regenerate-schemes.sh)
 *.pkp
 *.pkv
+sdks/js/tests/fixtures/
+examples/js/browser-example/artifacts/
 
 # Examples (Xcode projects are generated from project.yml via xcodegen)
 examples/ios/**/*.xcodeproj/

@@ -8,6 +8,12 @@ import { VerityError, VerityErrorCode } from "../errors.js";
 
 let wasmModule: any = null;
 let wasmInitialized = false;
+let wasmInitPromise: Promise<void> | null = null;
+
+type WorkerScopeShim = {
+  addEventListener: (...args: unknown[]) => void;
+  removeEventListener: (...args: unknown[]) => void;
+};
 
 // ---------------------------------------------------------------------------
 // Utility functions (exported for testing)
@@ -17,7 +23,19 @@ let wasmInitialized = false;
 export function mapWasmError(err: unknown): VerityError {
   const msg = err instanceof Error ? err.message : String(err);
 
-  if (msg.includes("Failed to parse prover") || msg.includes("Failed to parse verifier")) {
+  if (
+    msg.includes("Failed to parse prover") ||
+    msg.includes("Failed to parse verifier") ||
+    msg.includes("Invalid magic bytes") ||
+    msg.includes("Invalid format identifier") ||
+    msg.includes("data too short for binary format") ||
+    msg.includes("Incompatible prover format") ||
+    msg.includes("Incompatible verifier format") ||
+    msg.includes("Unknown compression format") ||
+    msg.includes("Failed to deserialize prover data") ||
+    msg.includes("Failed to deserialize verifier data") ||
+    msg.includes("Failed to decompress")
+  ) {
     return new VerityError(VerityErrorCode.SCHEME_READ_ERROR, msg);
   }
   if (msg.includes("Failed to parse proof")) {
@@ -65,6 +83,78 @@ function assertNotDisposed(disposed: boolean, name: string): void {
   if (disposed) {
     throw new VerityError(VerityErrorCode.RESOURCE_CLOSED, `${name} has been disposed`);
   }
+}
+
+async function getWasmModuleSpecifiers(isNode: boolean): Promise<string[]> {
+  if (isNode && typeof __dirname === "string") {
+    const [{ resolve }, { pathToFileURL }] = await Promise.all([
+      import("node:path"),
+      import("node:url"),
+    ]);
+    return [
+      pathToFileURL(resolve(__dirname, "../wasm/provekit_wasm.js")).href,
+      pathToFileURL(resolve(__dirname, "../../wasm/provekit_wasm.js")).href,
+    ];
+  }
+
+  return [
+    new URL("../wasm/provekit_wasm.js", import.meta.url).href,
+    new URL("../../wasm/provekit_wasm.js", import.meta.url).href,
+  ];
+}
+
+async function importFirstAvailable(specifiers: string[]): Promise<any> {
+  let lastError: unknown;
+
+  for (const specifier of specifiers) {
+    try {
+      return await import(specifier);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError;
+}
+
+async function getNodeWasmBinaryPath(): Promise<string> {
+  const { access } = await import("node:fs/promises");
+
+  if (typeof __dirname === "string") {
+    const { resolve } = await import("node:path");
+    const candidates = [
+      resolve(__dirname, "../wasm/provekit_wasm_bg.wasm"),
+      resolve(__dirname, "../../wasm/provekit_wasm_bg.wasm"),
+    ];
+
+    for (const candidate of candidates) {
+      try {
+        await access(candidate);
+        return candidate;
+      } catch {
+        // Try the next layout.
+      }
+    }
+
+    return candidates[candidates.length - 1];
+  }
+
+  const { fileURLToPath } = await import("node:url");
+  const candidates = [
+    fileURLToPath(new URL("../wasm/provekit_wasm_bg.wasm", import.meta.url)),
+    fileURLToPath(new URL("../../wasm/provekit_wasm_bg.wasm", import.meta.url)),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      await access(candidate);
+      return candidate;
+    } catch {
+      // Try the next layout.
+    }
+  }
+
+  return candidates[candidates.length - 1];
 }
 
 // ---------------------------------------------------------------------------
@@ -148,11 +238,11 @@ class ProveKitVerifierScheme implements VerifierScheme {
       this.verifier.verifyBytes(proof.data);
       return true;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes("Verification failed") || msg.includes("proof") || msg.includes("verify")) {
-        return false;
+      const mapped = mapWasmError(err);
+      if (mapped.code === VerityErrorCode.INVALID_INPUT) {
+        throw mapped;
       }
-      throw mapWasmError(err);
+      return false;
     }
   }
 
@@ -174,45 +264,80 @@ class ProveKitVerifierScheme implements VerifierScheme {
 export class ProveKitBinding implements BackendBinding {
   async init(options?: BackendOptions): Promise<void> {
     if (wasmInitialized) return;
+    if (!wasmInitPromise) {
+      wasmInitPromise = this.initOnce(options);
+    }
+    await wasmInitPromise;
+  }
 
-    // Load WASM module
+  private async initOnce(options?: BackendOptions): Promise<void> {
+    const isNode = typeof process !== "undefined" && !!process.versions?.node;
+    const globalScope = globalThis as typeof globalThis & { self?: unknown };
+    const hadOwnSelf = Object.prototype.hasOwnProperty.call(globalScope, "self");
+    const originalSelf = globalScope.self;
+    const wasmModuleSpecifiers = await getWasmModuleSpecifiers(isNode);
+
     try {
-      wasmModule = await import("../../wasm/provekit_wasm.js");
-    } catch {
+      if (isNode && typeof globalScope.self === "undefined") {
+        const workerScopeShim: WorkerScopeShim = {
+          addEventListener() {},
+          removeEventListener() {},
+        };
+        Reflect.set(globalScope as object, "self", workerScopeShim);
+      }
+
+      wasmModule = await importFirstAvailable(wasmModuleSpecifiers);
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
       throw new VerityError(
         VerityErrorCode.BACKEND_UNAVAILABLE,
-        "ProveKit WASM module not found. Ensure WASM artifacts are built (make core-wasm).",
+        `Failed to load ProveKit WASM module. Ensure WASM artifacts are built (make core-wasm). ${detail}`,
       );
+    } finally {
+      if (isNode) {
+        if (hadOwnSelf) {
+          Reflect.set(globalScope as object, "self", originalSelf);
+        } else {
+          Reflect.deleteProperty(globalScope, "self");
+        }
+      }
     }
 
-    // Initialize WASM binary
     const wasmUrl = options?.wasmUrl;
     if (wasmUrl) {
       const wasmResponse = await fetch(wasmUrl);
       const wasmBytes = await wasmResponse.arrayBuffer();
-      await wasmModule.default(wasmBytes);
+      await wasmModule.default({ module_or_path: wasmBytes });
     } else {
-      await wasmModule.default();
+      if (isNode) {
+        const { readFile } = await import("node:fs/promises");
+        const wasmBytes = await readFile(await getNodeWasmBinaryPath());
+        await wasmModule.default({ module_or_path: wasmBytes });
+      } else {
+        await wasmModule.default();
+      }
     }
 
-    // Init panic hook
     if (wasmModule.initPanicHook) {
       wasmModule.initPanicHook();
     }
 
-    // Thread pool
-    if (options?.threads !== false) {
+    const isBrowser =
+      typeof window !== "undefined" &&
+      typeof document !== "undefined" &&
+      typeof navigator !== "undefined";
+
+    if (isBrowser && options?.threads !== false) {
       const hasSharedArrayBuffer = typeof SharedArrayBuffer !== "undefined";
-      const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+      const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
 
       if (hasSharedArrayBuffer && !isIOS && wasmModule.initThreadPool) {
-        const threadCount = typeof options?.threads === "number"
-          ? options.threads
-          : (typeof navigator !== "undefined" ? navigator.hardwareConcurrency : 4) || 4;
+        const threadCount =
+          typeof options?.threads === "number" ? options.threads : navigator.hardwareConcurrency || 4;
         try {
           await wasmModule.initThreadPool(threadCount);
         } catch {
-          // Fallback to single-threaded — non-fatal
+          // Fallback to single-threaded mode when workers or isolation are unavailable.
         }
       }
     }

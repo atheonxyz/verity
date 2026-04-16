@@ -4,7 +4,7 @@ Zero-knowledge proof generation and verification in the browser using the Verity
 
 ## Prerequisites
 
-- Circuit artifacts (`.pkp`, `.pkv`, `inputs.json`) — generate with `make test-fixtures` or the ProveKit CLI
+- Circuit artifacts (`.pkp`, `.pkv`, `inputs.json`) — generate with ProveKit
 - Node.js (for the dev server)
 - ProveKit WASM built (`make core-wasm` from repo root)
 
@@ -13,15 +13,17 @@ Zero-knowledge proof generation and verification in the browser using the Verity
 ```bash
 # From the repo root
 make core-wasm        # Build ProveKit WASM artifacts
-make test-fixtures    # Generate test circuit artifacts
+bash scripts/generate-js-artifacts.sh
+
+# Build the SDK package
+cd sdks/js
+npm install
+npm run build
 
 # Set up the example
+cd ../..
 cd examples/js/browser-example
 npm install
-mkdir -p artifacts
-cp ../../../circuits/fixtures/sha256/*.pkp artifacts/prover.pkp
-cp ../../../circuits/fixtures/sha256/*.pkv artifacts/verifier.pkv
-cp ../../../circuits/fixtures/sha256/inputs.json artifacts/
 ```
 
 ## Run
@@ -29,6 +31,12 @@ cp ../../../circuits/fixtures/sha256/inputs.json artifacts/
 ```bash
 npm run serve
 # Open http://localhost:3000
+```
+
+## End-to-End Test
+
+```bash
+npm run test:e2e
 ```
 
 The server sets Cross-Origin Isolation headers (`COOP` + `COEP`) required for `SharedArrayBuffer` and WASM multi-threading.

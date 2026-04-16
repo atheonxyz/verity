@@ -1,11 +1,11 @@
 VERSION := $(shell cat VERSION)
-PROVEKIT_PATH ?= provekit
+PROVEKIT_PATH ?= ../provekit
 BACKENDS ?=
 CARGO_PROFILE ?= release-mobile
 
 # ── Core builds ────────────────────────────────────────────────────────
 
-.PHONY: core-ios core-android core-wasm core-native core-all
+.PHONY: core-ios core-android core-wasm core-native core-all js-artifacts test-js-e2e
 
 core-ios:
 	CARGO_PROFILE=$(CARGO_PROFILE) bash core/build/build-ios.sh $(PROVEKIT_PATH) $(if $(BACKENDS),--backends $(BACKENDS))
@@ -34,8 +34,15 @@ test-swift: core-ios test-fixtures
 test-kotlin: core-android test-fixtures
 	cd sdks/kotlin && ./gradlew connectedAndroidTest
 
-test-js: core-wasm core-native
+test-js: core-wasm js-artifacts
 	cd sdks/js && npm test
+
+js-artifacts:
+	bash scripts/generate-js-artifacts.sh $(PROVEKIT_PATH)
+
+test-js-e2e: core-wasm js-artifacts
+	cd sdks/js && npm run build
+	cd examples/js/browser-example && npm install && npm run test:e2e
 
 test-all: test-fixtures test-swift test-kotlin test-js
 

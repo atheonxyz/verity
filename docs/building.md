@@ -71,9 +71,12 @@ make test-all
 # Individual
 make test-swift                          # xcodebuild test (iPhone 16 simulator)
 make test-kotlin                         # ./gradlew connectedAndroidTest
-make test-js                             # vitest run
+make test-js                             # JS unit + integration tests
+make test-js-e2e                         # browser demo end-to-end
 
 # JS SDK standalone
+make core-wasm
+bash scripts/generate-js-artifacts.sh
 cd sdks/js && npm install && npm test
 cd sdks/js && npm run test:watch         # watch mode
 ```
@@ -109,6 +112,7 @@ make clean
 
 ```bash
 make version                             # print current version from VERSION file
+bash scripts/generate-js-artifacts.sh    # prepare JS test/demo artifacts via ProveKit
 ```
 
 ## Project Structure

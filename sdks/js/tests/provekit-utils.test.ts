@@ -14,6 +14,16 @@ describe("mapWasmError", () => {
     expect(err.code).toBe(VerityErrorCode.SCHEME_READ_ERROR);
   });
 
+  it("maps binary format errors to SCHEME_READ_ERROR", () => {
+    const err = mapWasmError(new Error("Invalid magic bytes in prover data"));
+    expect(err.code).toBe(VerityErrorCode.SCHEME_READ_ERROR);
+  });
+
+  it("maps decompression errors to SCHEME_READ_ERROR", () => {
+    const err = mapWasmError(new Error("Failed to decompress XZ data: invalid header"));
+    expect(err.code).toBe(VerityErrorCode.SCHEME_READ_ERROR);
+  });
+
   it("maps proof generation errors to PROOF_ERROR", () => {
     const err = mapWasmError(new Error("Failed to generate proof: timeout"));
     expect(err.code).toBe(VerityErrorCode.PROOF_ERROR);
