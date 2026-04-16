@@ -121,7 +121,18 @@ jobs:
       - name: Install wasm-pack
         run: |
           cargo install wasm-pack --locked
-          cargo install wasm-bindgen-cli --locked
+          WASM_BINDGEN_VERSION=$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          lock = Path("provekit/Cargo.lock").read_text()
+          match = re.search(r'\[\[package\]\]\nname = "wasm-bindgen"\nversion = "([^"]+)"', lock)
+          if not match:
+              raise SystemExit("Failed to determine wasm-bindgen version from provekit/Cargo.lock")
+          print(match.group(1))
+          PY
+          )
+          cargo install wasm-bindgen-cli --version "$WASM_BINDGEN_VERSION" --locked
       - uses: actions/cache@v4
         with:
           path: |
