@@ -1,14 +1,13 @@
 /**
- * Node.js entry point — uses N-API native addon for FFI.
+ * Node.js entry point.
  *
- * The native addon (verity_napi.node) provides synchronous bindings
- * to the C dispatcher, wrapped in async for API consistency.
+ * The current JS SDK uses the same ProveKit WASM backend in Node.js and the
+ * browser. Native addon integration can be added later without changing the
+ * public API.
  */
 
 export { Verity } from "./verity.js";
 export { Backend } from "./types.js";
-export type { ProverScheme, VerifierScheme } from "./types.js";
+export type { ProverScheme, VerifierScheme, BackendOptions } from "./types.js";
+export { Proof } from "./proof.js";
 export { VerityError, VerityErrorCode } from "./errors.js";
-
-// TODO: Wire up N-API binding in Verity.resolveBinding()
-// The native addon will be built from native/verity_napi.c

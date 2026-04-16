@@ -1,0 +1,22 @@
+{
+  "name": "verity-browser-example",
+  "version": "1.0.0",
+  "description": "Verity SDK browser demo — prove and verify zero-knowledge proofs",
+  "type": "module",
+  "scripts": {
+    "serve": "node scripts/serve.mjs",
+    "setup": "echo 'Generate artifacts with bash scripts/generate-js-artifacts.sh from the repo root'",
+    "test:e2e": "node scripts/e2e.mjs"
+  },
+  "dependencies": {
+    "@atheon/verity": "file:../../../sdks/js",
+    "@noir-lang/acvm_js": "1.0.0-beta.11",
+    "@noir-lang/noir_js": "1.0.0-beta.11",
+    "@noir-lang/noirc_abi": "1.0.0-beta.11",
+    "@noir-lang/types": "1.0.0-beta.11",
+    "pako": "^2.1.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.58.2"
+  }
+}

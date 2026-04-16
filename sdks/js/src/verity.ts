@@ -1,19 +1,24 @@
-import { Backend, type BackendBinding, type ProverScheme, type VerifierScheme } from "./types.js";
+import { Backend, type BackendBinding, type BackendOptions, type ProverScheme, type VerifierScheme } from "./types.js";
+import type { Proof } from "./proof.js";
 import { VerityError, VerityErrorCode } from "./errors.js";
 
 /**
- * Verity — generate and verify zero-knowledge proofs.
+ * Verity — zero-knowledge proof SDK.
  *
- * Usage:
+ * Factory for loading prover and verifier schemes.
+ * Use the schemes directly to generate and verify proofs.
+ *
  * ```ts
- * const verity   = await Verity.create(Backend.Barretenberg);
- * const prover   = await verity.loadProver(proverBytes);
- * const verifier = await verity.loadVerifier(verifierBytes);
- * const proof    = await verity.prove(prover, { a: 1, b: 2 });
- * const valid    = await verity.verify(verifier, proof);
+ * const verity   = await Verity.create(Backend.ProveKit);
+ * const prover   = await verity.loadProver(pkpBytes);
+ * const verifier = await verity.loadVerifier(pkvBytes);
+ * const proof    = await prover.prove({ x: "1", y: "2" });
+ * const valid    = await verifier.verify(proof);
  * ```
  */
 export class Verity {
+  static readonly version: string = typeof __VERSION__ === "string" ? __VERSION__ : "0.0.0-dev";
+
   private binding: BackendBinding;
   private _backend: Backend;
 
@@ -31,37 +36,50 @@ export class Verity {
    * Create a Verity instance with the specified backend.
    * Initializes the backend (may load WASM or native addon).
    */
-  static async create(backend: Backend): Promise<Verity> {
+  static async create(backend: Backend, options?: BackendOptions): Promise<Verity> {
     const binding = await Verity.resolveBinding(backend);
-    await binding.init();
+    await binding.init(options);
     return new Verity(backend, binding);
   }
 
   private static async resolveBinding(backend: Backend): Promise<BackendBinding> {
-    // Dynamic import based on runtime — resolved at build time via package.json exports
-    throw new VerityError(
-      VerityErrorCode.BACKEND_UNAVAILABLE,
-      `Backend ${Backend[backend]} binding not yet implemented`
-    );
+    switch (backend) {
+      case Backend.ProveKit: {
+        const { ProveKitBinding } = await import("./backends/provekit.js");
+        return new ProveKitBinding();
+      }
+      case Backend.Barretenberg: {
+        const { BarretenbergBinding } = await import("./backends/barretenberg.js");
+        return new BarretenbergBinding();
+      }
+      default:
+        throw new VerityError(VerityErrorCode.UNKNOWN_BACKEND, `Unknown backend: ${backend}`);
+    }
   }
 
-  /** Generate a proof. */
-  async prove(prover: ProverScheme, inputs: string | Record<string, unknown>): Promise<Uint8Array> {
-    return this.binding.prove(prover, inputs);
-  }
-
-  /** Verify a proof. Returns true if valid. */
-  async verify(verifier: VerifierScheme, proof: Uint8Array): Promise<boolean> {
-    return this.binding.verify(verifier, proof);
-  }
-
-  /** Load a prover scheme from bytes. */
+  /** Load a prover scheme from bytes (.pkp format). */
   async loadProver(data: Uint8Array): Promise<ProverScheme> {
+    if (data.length === 0) {
+      throw new VerityError(VerityErrorCode.INVALID_INPUT, "prover data cannot be empty");
+    }
     return this.binding.loadProver(data);
   }
 
-  /** Load a verifier scheme from bytes. */
+  /** Load a verifier scheme from bytes (.pkv format). */
   async loadVerifier(data: Uint8Array): Promise<VerifierScheme> {
+    if (data.length === 0) {
+      throw new VerityError(VerityErrorCode.INVALID_INPUT, "verifier data cannot be empty");
+    }
     return this.binding.loadVerifier(data);
+  }
+
+  /** Generate a proof. Convenience — delegates to `prover.prove()`. */
+  async prove(prover: ProverScheme, inputs: Record<string, unknown> | string): Promise<Proof> {
+    return prover.prove(inputs);
+  }
+
+  /** Verify a proof. Convenience — delegates to `verifier.verify()`. */
+  async verify(verifier: VerifierScheme, proof: Proof): Promise<boolean> {
+    return verifier.verify(proof);
   }
 }

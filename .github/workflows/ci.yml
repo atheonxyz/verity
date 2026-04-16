@@ -72,6 +72,7 @@ jobs:
       targets: "ios,android,wasm,native"
       rust-toolchain: "nightly-2026-03-04"
       provekit-ref: "v1"
+      provekit_wasm_ref: "main"
 
   test-swift:
     needs: [changes, core-build]
@@ -120,6 +121,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: core-wasm
+          path: output/wasm/
+      - name: Provision JS WASM artifacts
+        run: |
+          mkdir -p sdks/js/wasm
+          cp -R output/wasm/provekit/. sdks/js/wasm/
       - uses: actions/setup-node@v4
         with:
           node-version: 20

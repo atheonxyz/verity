@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verity Browser Demo</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --card: #141418;
+      --border: #1e1e24;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #3b82f6;
+      --success: #22c55e;
+      --error: #ef4444;
+      --font-sans: system-ui, -apple-system, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.5rem 1.25rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    button:hover:not(:disabled) { opacity: 0.85; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #status {
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+
+    #log {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      min-height: 300px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    #log:empty::after {
+      content: 'Click "Run Demo" to generate and verify a proof.';
+      color: var(--muted);
+    }
+
+    .log-info { color: var(--text); }
+    .log-success { color: var(--success); }
+    .log-error { color: var(--error); }
+
+    .note {
+      margin-top: 1.5rem;
+      padding: 0.75rem 1rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .note code {
+      background: rgba(255, 255, 255, 0.06);
+      padding: 0.1em 0.3em;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 0.8em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Verity Browser Demo</h1>
+    <p class="subtitle">Zero-knowledge proof generation and verification using ProveKit WASM</p>
+
+    <div class="controls">
+      <button id="runBtn" disabled>Run Demo</button>
+      <span id="status">Loading...</span>
+    </div>
+
+    <div id="log"></div>
+
+    <div class="note">
+      <strong>Setup:</strong> Place your circuit artifacts in <code>artifacts/</code>:
+      <code>prover.pkp</code>, <code>verifier.pkv</code>, and <code>inputs.json</code>.
+      Generate them with <code>bash scripts/generate-js-artifacts.sh</code>.
+      Run with <code>npm run serve</code> (requires Cross-Origin Isolation headers for WASM threading).
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "@atheon/verity": "./node_modules/@atheon/verity/dist/browser/index.js",
+        "@noir-lang/noir_js": "./node_modules/@noir-lang/noir_js/lib/index.mjs",
+        "@noir-lang/acvm_js": "./node_modules/@noir-lang/acvm_js/web/acvm_js.js",
+        "@noir-lang/noirc_abi": "./node_modules/@noir-lang/noirc_abi/web/noirc_abi_wasm.js",
+        "@noir-lang/types": "./node_modules/@noir-lang/types/lib/esm/types.js",
+        "pako": "./node_modules/pako/dist/pako.esm.mjs"
+      }
+    }
+  </script>
+  <script type="module" src="src/demo.mjs"></script>
+</body>
+</html>

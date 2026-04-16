@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Backend, VerityError, VerityErrorCode } from "../src/index.js";
+import { Backend, Verity, VerityError, VerityErrorCode } from "../src/index.js";
 
 describe("Verity JS SDK", () => {
   describe("types", () => {
@@ -18,10 +18,29 @@ describe("Verity JS SDK", () => {
       expect(err.message).toContain("test detail");
     });
 
-    it("should create VerityError for backend unavailable", () => {
+    it("should map OUT_OF_MEMORY to code 10 (matching C FFI)", () => {
+      const err = new VerityError(VerityErrorCode.OUT_OF_MEMORY);
+      expect(err.code).toBe(10);
+      expect(err.message).toContain("Out of memory");
+    });
+
+    it("should map BACKEND_UNAVAILABLE to code 11", () => {
       const err = new VerityError(VerityErrorCode.BACKEND_UNAVAILABLE);
-      expect(err.code).toBe(VerityErrorCode.BACKEND_UNAVAILABLE);
+      expect(err.code).toBe(11);
       expect(err.message).toContain("Backend not available");
+    });
+
+    it("should map RESOURCE_CLOSED to code -2", () => {
+      const err = new VerityError(VerityErrorCode.RESOURCE_CLOSED);
+      expect(err.code).toBe(-2);
+      expect(err.message).toContain("Resource has been disposed");
+    });
+
+    it("should throw a typed error for unsupported Barretenberg backend", async () => {
+      await expect(Verity.create(Backend.Barretenberg)).rejects.toBeInstanceOf(VerityError);
+      await expect(Verity.create(Backend.Barretenberg)).rejects.toMatchObject({
+        code: VerityErrorCode.BACKEND_UNAVAILABLE,
+      });
     });
   });
 });

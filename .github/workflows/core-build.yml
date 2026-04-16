@@ -18,6 +18,11 @@ on:
         required: false
         default: "v1"
         type: string
+      provekit_wasm_ref:
+        description: "ProveKit git ref for WASM builds"
+        required: false
+        default: "main"
+        type: string
 
 jobs:
   build-ios:
@@ -103,19 +108,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: worldfnd/provekit
+          ref: ${{ inputs.provekit_wasm_ref }}
+          path: provekit
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ inputs.rust-toolchain }}
           targets: wasm32-unknown-unknown
+          components: rust-src
       - name: Install wasm-pack
-        run: cargo install wasm-pack --locked
+        run: |
+          cargo install wasm-pack --locked
+          WASM_BINDGEN_VERSION=$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          lock = Path("provekit/Cargo.lock").read_text()
+          match = re.search(r'\[\[package\]\]\nname = "wasm-bindgen"\nversion = "([^"]+)"', lock)
+          if not match:
+              raise SystemExit("Failed to determine wasm-bindgen version from provekit/Cargo.lock")
+          print(match.group(1))
+          PY
+          )
+          cargo install wasm-bindgen-cli --version "$WASM_BINDGEN_VERSION" --locked
       - uses: actions/cache@v4
         with:
           path: |
-            core/target
+            .build/provekit-wasm-target
+            provekit/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: rust-wasm-${{ inputs.rust-toolchain }}-${{ hashFiles('core/Cargo.lock') }}
+          key: rust-wasm-${{ inputs.rust-toolchain }}-${{ inputs.provekit_wasm_ref }}-${{ hashFiles('core/Cargo.lock') }}
           restore-keys: rust-wasm-${{ inputs.rust-toolchain }}-
       - name: Build WASM
         run: bash core/build/build-wasm.sh
