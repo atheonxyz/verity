@@ -21,6 +21,10 @@ resolve_provekit_path() {
         printf '%s\n' "$PROVEKIT_PATH"
         return
     fi
+    if [ -d "$REPO_DIR/provekit" ]; then
+        printf '%s\n' "$REPO_DIR/provekit"
+        return
+    fi
     if [ -d "$REPO_DIR/../provekit" ]; then
         printf '%s\n' "$REPO_DIR/../provekit"
         return

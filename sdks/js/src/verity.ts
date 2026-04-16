@@ -17,7 +17,7 @@ import { VerityError, VerityErrorCode } from "./errors.js";
  * ```
  */
 export class Verity {
-  static readonly version: string = "__VERSION__";
+  static readonly version: string = typeof __VERSION__ === "string" ? __VERSION__ : "0.0.0-dev";
 
   private binding: BackendBinding;
   private _backend: Backend;

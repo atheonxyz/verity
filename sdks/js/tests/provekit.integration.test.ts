@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { Backend, Proof, Verity } from "../src/index.js";
+import { Backend, Proof, Verity, VerityError, VerityErrorCode } from "../src/index.js";
 
 const fixturesDir = new URL("./fixtures/", import.meta.url);
 const requiredFiles = [
@@ -13,16 +13,26 @@ const requiredFiles = [
 const describeIfReady = requiredFiles.every((file) => existsSync(file)) ? describe : describe.skip;
 
 describeIfReady("ProveKit integration", () => {
-  it("loads artifacts, proves, verifies, and supports reuse", async () => {
+  async function loadFixtures() {
     const [pkpBytes, pkvBytes, inputs] = await Promise.all([
       readFile(new URL("./prover.pkp", fixturesDir)),
       readFile(new URL("./verifier.pkv", fixturesDir)),
       readFile(new URL("./inputs.json", fixturesDir), "utf8").then(JSON.parse),
     ]);
 
+    return {
+      pkpBytes: new Uint8Array(pkpBytes),
+      pkvBytes: new Uint8Array(pkvBytes),
+      inputs,
+    };
+  }
+
+  it("loads artifacts, proves, verifies, and supports reuse", async () => {
+    const { pkpBytes, pkvBytes, inputs } = await loadFixtures();
+
     const verity = await Verity.create(Backend.ProveKit, { threads: false });
-    const prover = await verity.loadProver(new Uint8Array(pkpBytes));
-    const verifier = await verity.loadVerifier(new Uint8Array(pkvBytes));
+    const prover = await verity.loadProver(pkpBytes);
+    const verifier = await verity.loadVerifier(pkvBytes);
 
     const proof = await prover.prove(inputs);
     expect(proof).toBeInstanceOf(Proof);
@@ -41,10 +51,23 @@ describeIfReady("ProveKit integration", () => {
     const tampered = Proof.fromBytes(new TextEncoder().encode(JSON.stringify(tamperedPayload)));
     expect(await verifier.verify(tampered)).toBe(false);
 
-    expect(await prover.serialize()).toEqual(new Uint8Array(pkpBytes));
-    expect(await verifier.serialize()).toEqual(new Uint8Array(pkvBytes));
+    expect(await prover.serialize()).toEqual(pkpBytes);
+    expect(await verifier.serialize()).toEqual(pkvBytes);
 
     prover.dispose();
     verifier.dispose();
+  });
+
+  it("throws INVALID_INPUT for malformed JSON strings", async () => {
+    const { pkpBytes } = await loadFixtures();
+
+    const verity = await Verity.create(Backend.ProveKit, { threads: false });
+    const prover = await verity.loadProver(pkpBytes);
+
+    await expect(prover.prove("{")).rejects.toMatchObject<Partial<VerityError>>({
+      code: VerityErrorCode.INVALID_INPUT,
+    });
+
+    prover.dispose();
   });
 });

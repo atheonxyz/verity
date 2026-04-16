@@ -1,5 +1,5 @@
 VERSION := $(shell cat VERSION)
-PROVEKIT_PATH ?= ../provekit
+PROVEKIT_PATH ?= provekit
 BACKENDS ?=
 CARGO_PROFILE ?= release-mobile
 

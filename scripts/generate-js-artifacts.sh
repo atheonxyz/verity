@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-DEFAULT_PROVEKIT="$REPO_ROOT/../provekit"
+DEFAULT_PROVEKIT="$REPO_ROOT/provekit"
 TARGET_DIR="$REPO_ROOT/.build/provekit-cli-target"
 CLI_BIN="$TARGET_DIR/release-fast/provekit-cli"
 SDK_FIXTURES_DIR="$REPO_ROOT/sdks/js/tests/fixtures"

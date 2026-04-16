@@ -1,3 +1,5 @@
+declare const __VERSION__: string;
+
 declare module "../../wasm/provekit_wasm.js" {
   export class Prover {
     constructor(proverData: Uint8Array);
@@ -13,5 +15,9 @@ declare module "../../wasm/provekit_wasm.js" {
   export function initPanicHook(): void;
   export function initThreadPool(numThreads: number): Promise<void>;
 
-  export default function init(input?: BufferSource | WebAssembly.Module): Promise<unknown>;
+  export default function init(input?: {
+    module_or_path?: unknown;
+    memory?: WebAssembly.Memory;
+    thread_stack_size?: number;
+  } | BufferSource | WebAssembly.Module): Promise<unknown>;
 }

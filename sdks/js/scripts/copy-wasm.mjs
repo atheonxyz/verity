@@ -1,4 +1,4 @@
-import { cp, mkdir, stat } from "node:fs/promises";
+import { cp, mkdir, rm, stat } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,3 +24,4 @@ if (!(await exists(resolve(srcDir, "provekit_wasm.js")))) {
 
 await mkdir(resolve(sdkRoot, "dist"), { recursive: true });
 await cp(srcDir, distDir, { recursive: true, force: true });
+await rm(resolve(distDir, ".gitignore"), { force: true });

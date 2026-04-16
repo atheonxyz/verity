@@ -1,3 +1,4 @@
+import { VerityError, VerityErrorCode } from "../errors.js";
 import type { BackendBinding, BackendOptions, ProverScheme, VerifierScheme } from "../types.js";
 
 /**
@@ -8,14 +9,23 @@ import type { BackendBinding, BackendOptions, ProverScheme, VerifierScheme } fro
  */
 export class BarretenbergBinding implements BackendBinding {
   async init(_options?: BackendOptions): Promise<void> {
-    throw new Error("Barretenberg WASM binding not yet implemented");
+    throw new VerityError(
+      VerityErrorCode.BACKEND_UNAVAILABLE,
+      "Barretenberg WASM binding not yet implemented",
+    );
   }
 
   async loadProver(_data: Uint8Array): Promise<ProverScheme> {
-    throw new Error("Not implemented");
+    throw new VerityError(
+      VerityErrorCode.BACKEND_UNAVAILABLE,
+      "Barretenberg WASM binding not yet implemented",
+    );
   }
 
   async loadVerifier(_data: Uint8Array): Promise<VerifierScheme> {
-    throw new Error("Not implemented");
+    throw new VerityError(
+      VerityErrorCode.BACKEND_UNAVAILABLE,
+      "Barretenberg WASM binding not yet implemented",
+    );
   }
 }

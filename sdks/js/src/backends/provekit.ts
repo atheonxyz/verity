@@ -85,6 +85,21 @@ function assertNotDisposed(disposed: boolean, name: string): void {
   }
 }
 
+function parseJsonInputs(inputs: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(inputs) as unknown;
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new VerityError(VerityErrorCode.INVALID_INPUT, "JSON input string must decode to an object");
+    }
+    return parsed as Record<string, unknown>;
+  } catch (err) {
+    if (err instanceof VerityError) {
+      throw err;
+    }
+    throw new VerityError(VerityErrorCode.INVALID_INPUT, "Failed to parse JSON input string");
+  }
+}
+
 async function getWasmModuleSpecifiers(isNode: boolean): Promise<string[]> {
   if (isNode && typeof __dirname === "string") {
     const [{ resolve }, { pathToFileURL }] = await Promise.all([
@@ -174,7 +189,7 @@ class ProveKitProverScheme implements ProverScheme {
   async prove(inputs: Record<string, unknown> | string): Promise<Proof> {
     assertNotDisposed(this.disposed, "ProverScheme");
 
-    const parsedInputs = typeof inputs === "string" ? JSON.parse(inputs) : inputs;
+    const parsedInputs = typeof inputs === "string" ? parseJsonInputs(inputs) : inputs;
 
     // Load noir_js for witness generation
     let Noir: any;
@@ -265,7 +280,10 @@ export class ProveKitBinding implements BackendBinding {
   async init(options?: BackendOptions): Promise<void> {
     if (wasmInitialized) return;
     if (!wasmInitPromise) {
-      wasmInitPromise = this.initOnce(options);
+      wasmInitPromise = this.initOnce(options).catch((err) => {
+        wasmInitPromise = null;
+        throw err;
+      });
     }
     await wasmInitPromise;
   }
@@ -303,19 +321,28 @@ export class ProveKitBinding implements BackendBinding {
       }
     }
 
-    const wasmUrl = options?.wasmUrl;
-    if (wasmUrl) {
-      const wasmResponse = await fetch(wasmUrl);
-      const wasmBytes = await wasmResponse.arrayBuffer();
-      await wasmModule.default({ module_or_path: wasmBytes });
-    } else {
-      if (isNode) {
+    try {
+      const wasmUrl = options?.wasmUrl;
+      if (wasmUrl) {
+        const wasmResponse = await fetch(wasmUrl);
+        const wasmBytes = await wasmResponse.arrayBuffer();
+        await wasmModule.default({ module_or_path: wasmBytes });
+      } else if (isNode) {
         const { readFile } = await import("node:fs/promises");
         const wasmBytes = await readFile(await getNodeWasmBinaryPath());
         await wasmModule.default({ module_or_path: wasmBytes });
       } else {
         await wasmModule.default();
       }
+    } catch (err) {
+      if (err instanceof VerityError) {
+        throw err;
+      }
+      const detail = err instanceof Error ? err.message : String(err);
+      throw new VerityError(
+        VerityErrorCode.BACKEND_UNAVAILABLE,
+        `Failed to initialize ProveKit WASM runtime. ${detail}`,
+      );
     }
 
     if (wasmModule.initPanicHook) {
@@ -346,13 +373,15 @@ export class ProveKitBinding implements BackendBinding {
   }
 
   async loadProver(data: Uint8Array): Promise<ProverScheme> {
+    const tempProver = new wasmModule.Prover(data);
     try {
-      const tempProver = new wasmModule.Prover(data);
       const circuitBytes: Uint8Array = tempProver.getCircuit();
       const circuitJson = JSON.parse(new TextDecoder().decode(circuitBytes));
       return new ProveKitProverScheme(data, circuitJson);
     } catch (err) {
       throw mapWasmError(err);
+    } finally {
+      tempProver.free();
     }
   }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Backend, VerityError, VerityErrorCode } from "../src/index.js";
+import { Backend, Verity, VerityError, VerityErrorCode } from "../src/index.js";
 
 describe("Verity JS SDK", () => {
   describe("types", () => {
@@ -34,6 +34,13 @@ describe("Verity JS SDK", () => {
       const err = new VerityError(VerityErrorCode.RESOURCE_CLOSED);
       expect(err.code).toBe(-2);
       expect(err.message).toContain("Resource has been disposed");
+    });
+
+    it("should throw a typed error for unsupported Barretenberg backend", async () => {
+      await expect(Verity.create(Backend.Barretenberg)).rejects.toBeInstanceOf(VerityError);
+      await expect(Verity.create(Backend.Barretenberg)).rejects.toMatchObject({
+        code: VerityErrorCode.BACKEND_UNAVAILABLE,
+      });
     });
   });
 });
