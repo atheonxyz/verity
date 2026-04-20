@@ -1,5 +1,5 @@
 {
-  "name": "@atheon/verity",
+  "name": "@atheonxyz/verity",
   "version": "0.3.2-beta",
   "description": "Zero-knowledge proof SDK for Node.js and browsers",
   "license": "MIT",
