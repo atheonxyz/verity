@@ -1,6 +1,6 @@
 {
-  "name": "@atheon/verity",
-  "version": "0.3.2",
+  "name": "@atheonxyz/verity",
+  "version": "0.3.2-beta",
   "description": "Zero-knowledge proof SDK for Node.js and browsers",
   "license": "MIT",
   "repository": {
@@ -30,14 +30,16 @@
   ],
   "scripts": {
     "build": "tsup --config tsup.config.ts && tsc --emitDeclarationOnly && node scripts/copy-wasm.mjs",
-    "test": "vitest run",
+    "test": "npm run test:src && npm run test:dist",
+    "test:src": "vitest run",
+    "test:dist": "npm run build && node scripts/smoke-dist.mjs",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
-    "@noir-lang/noir_js": "1.0.0-beta.11",
-    "@noir-lang/acvm_js": "1.0.0-beta.11"
+    "@noir-lang/noir_js": "1.0.0-beta.19",
+    "@noir-lang/acvm_js": "1.0.0-beta.19"
   },
   "peerDependenciesMeta": {
     "@noir-lang/noir_js": { "optional": true },
@@ -45,8 +47,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.9.1",
-    "@noir-lang/acvm_js": "1.0.0-beta.11",
-    "@noir-lang/noir_js": "1.0.0-beta.11",
+    "@noir-lang/acvm_js": "1.0.0-beta.19",
+    "@noir-lang/noir_js": "1.0.0-beta.19",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "vitest": "^2.0.0"

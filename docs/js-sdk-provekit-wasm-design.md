@@ -2,11 +2,11 @@
 
 **Date:** 2026-04-08
 **Status:** Approved
-**Scope:** Browser-only ProveKit backend via WASM. Node.js and Barretenberg deferred.
+**Scope:** Browser and Node.js ProveKit backend via WASM. Barretenberg deferred.
 
 ## Goal
 
-Implement the ProveKit proving backend for the JS/TypeScript SDK using ProveKit's existing WASM crate (`tooling/provekit-wasm/`). Users can generate and verify zero-knowledge proofs in the browser with a single `npm install`.
+Implement the ProveKit proving backend for the JS/TypeScript SDK using ProveKit's existing WASM crate (`tooling/provekit-wasm/`). Users can generate and verify zero-knowledge proofs in browsers and Node.js with a single `npm install`.
 
 ## Usage
 
