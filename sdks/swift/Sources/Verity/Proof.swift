@@ -11,16 +11,19 @@ public struct Proof: Sendable, Equatable, Hashable, CustomStringConvertible {
     /// Proof size in bytes.
     public var size: Int { data.count }
 
+    /// Pre-built hex lookup table — avoids per-byte String(format:) overhead.
+    private static let hexTable: [String] = (0...255).map {
+        String(format: "%02x", $0)
+    }
+
     /// Hex-encoded proof string (full).
     public var hex: String {
-        data.reduce(into: String()) { result, byte in
-            result += String(format: "%02x", byte)
-        }
+        data.reduce(into: "") { $0 += Self.hexTable[Int($1)] }
     }
 
     /// Truncated hex string for display (first `maxBytes` bytes + "...").
     public func hexPreview(maxBytes: Int = 32) -> String {
-        let prefix = data.prefix(maxBytes).map { String(format: "%02x", $0) }.joined()
+        let prefix = data.prefix(maxBytes).map { Self.hexTable[Int($0)] }.joined()
         return data.count > maxBytes ? prefix + "..." : prefix
     }
 

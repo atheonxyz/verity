@@ -1,5 +1,6 @@
 import Foundation
 import VerityDispatch
+import Darwin
 
 /// Available proving backends.
 public enum Backend: UInt32, CaseIterable, Sendable, CustomStringConvertible {
@@ -176,6 +177,181 @@ public final class Verity: @unchecked Sendable {
         }
     }
 
+    // MARK: - Async Load
+
+    /// Load a prover scheme from a file (async).
+    public func loadProver(from path: String) async throws -> ProverScheme {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.loadProver(from: path))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Load a prover scheme from a URL (async).
+    public func loadProver(from url: URL) async throws -> ProverScheme {
+        try await loadProver(from: url.path)
+    }
+
+    /// Load a prover scheme from bytes (async).
+    public func loadProver(data: Data) async throws -> ProverScheme {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.loadProver(data: data))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Load a verifier scheme from a file (async).
+    public func loadVerifier(from path: String) async throws -> VerifierScheme {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.loadVerifier(from: path))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Load a verifier scheme from a URL (async).
+    public func loadVerifier(from url: URL) async throws -> VerifierScheme {
+        try await loadVerifier(from: url.path)
+    }
+
+    /// Load a verifier scheme from bytes (async).
+    public func loadVerifier(data: Data) async throws -> VerifierScheme {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.loadVerifier(data: data))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    // MARK: - Memory-Mapped Load
+
+    /// Memory-map a file for reading. Caller must `munmap()` when done.
+    private static func mmapFile(path: String) throws -> (UnsafeMutableRawPointer, Int) {
+        let fd = open(path, O_RDONLY)
+        guard fd >= 0 else { throw VerityError.schemeReadError }
+        defer { close(fd) }
+
+        var sb = Darwin.stat()
+        guard fstat(fd, &sb) == 0 else { throw VerityError.schemeReadError }
+        let size = Int(sb.st_size)
+        guard size > 0 else {
+            throw VerityError.invalidInput("empty scheme file: \(path)")
+        }
+
+        let ptr = mmap(nil, size, PROT_READ, MAP_PRIVATE, fd, 0)
+        guard ptr != MAP_FAILED, let ptr else { throw VerityError.schemeReadError }
+
+        return (ptr, size)
+    }
+
+    /// Load a prover scheme from a memory-mapped file.
+    ///
+    /// Uses `mmap()` instead of heap allocation for the file contents. The OS
+    /// pages in data on demand and can reclaim pages under memory pressure —
+    /// ideal for large scheme files on memory-constrained devices.
+    ///
+    /// - Parameter path: Path to saved prover file.
+    /// - Returns: A ``ProverScheme`` handle.
+    public func loadProver(mappedFrom path: String) throws -> ProverScheme {
+        let (ptr, size) = try Verity.mmapFile(path: path)
+        defer { munmap(ptr, size) }
+
+        var handle: OpaquePointer?
+        let code = verity_load_prover_bytes(
+            backend.cValue,
+            ptr.assumingMemoryBound(to: UInt8.self),
+            UInt(size),
+            &handle
+        )
+        guard code == 0, let handle else { throw VerityError.fromCode(code) }
+        return ProverScheme(handle: handle)
+    }
+
+    /// Load a prover scheme from a memory-mapped file URL.
+    public func loadProver(mappedFrom url: URL) throws -> ProverScheme {
+        try loadProver(mappedFrom: url.path)
+    }
+
+    /// Load a verifier scheme from a memory-mapped file.
+    ///
+    /// Uses `mmap()` instead of heap allocation for the file contents.
+    ///
+    /// - Parameter path: Path to saved verifier file.
+    /// - Returns: A ``VerifierScheme`` handle.
+    public func loadVerifier(mappedFrom path: String) throws -> VerifierScheme {
+        let (ptr, size) = try Verity.mmapFile(path: path)
+        defer { munmap(ptr, size) }
+
+        var handle: OpaquePointer?
+        let code = verity_load_verifier_bytes(
+            backend.cValue,
+            ptr.assumingMemoryBound(to: UInt8.self),
+            UInt(size),
+            &handle
+        )
+        guard code == 0, let handle else { throw VerityError.fromCode(code) }
+        return VerifierScheme(handle: handle)
+    }
+
+    /// Load a verifier scheme from a memory-mapped file URL.
+    public func loadVerifier(mappedFrom url: URL) throws -> VerifierScheme {
+        try loadVerifier(mappedFrom: url.path)
+    }
+
+    /// Load a prover scheme from a memory-mapped file (async).
+    public func loadProver(mappedFrom path: String) async throws -> ProverScheme {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.loadProver(mappedFrom: path))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Load a prover scheme from a memory-mapped file URL (async).
+    public func loadProver(mappedFrom url: URL) async throws -> ProverScheme {
+        try await loadProver(mappedFrom: url.path)
+    }
+
+    /// Load a verifier scheme from a memory-mapped file (async).
+    public func loadVerifier(mappedFrom path: String) async throws -> VerifierScheme {
+        try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    continuation.resume(returning: try self.loadVerifier(mappedFrom: path))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    /// Load a verifier scheme from a memory-mapped file URL (async).
+    public func loadVerifier(mappedFrom url: URL) async throws -> VerifierScheme {
+        try await loadVerifier(mappedFrom: url.path)
+    }
+
     // MARK: - Prove / Verify (convenience)
 
     /// Generate a proof using a prover scheme and witness values.
@@ -200,6 +376,16 @@ public final class Verity: @unchecked Sendable {
     /// - Returns: `true` if proof is valid, `false` if mathematically invalid.
     public func verify(with verifier: VerifierScheme, proof: Proof) throws -> Bool {
         try verifier.verify(proof: proof)
+    }
+
+    /// Generate a proof (async convenience).
+    public func prove(with prover: ProverScheme, witness: Witness) async throws -> Proof {
+        try await prover.prove(witness: witness)
+    }
+
+    /// Verify a proof (async convenience).
+    public func verify(with verifier: VerifierScheme, proof: Proof) async throws -> Bool {
+        try await verifier.verify(proof: proof)
     }
 
     // MARK: - Memory Configuration (ProveKit)
