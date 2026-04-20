@@ -7,7 +7,7 @@ The package supports:
 - Browser proving and verification through the ProveKit WASM backend
 - Node.js proving and verification through the same ProveKit WASM path
 
-Before building or running the browser backend from this repo, generate the WASM
+Before building or running the JS SDK from this repo, generate the WASM
 artifacts:
 
 ```bash

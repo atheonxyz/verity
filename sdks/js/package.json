@@ -1,6 +1,6 @@
 {
   "name": "@atheon/verity",
-  "version": "0.3.2",
+  "version": "0.3.2-alpha",
   "description": "Zero-knowledge proof SDK for Node.js and browsers",
   "license": "MIT",
   "repository": {
@@ -30,7 +30,9 @@
   ],
   "scripts": {
     "build": "tsup --config tsup.config.ts && tsc --emitDeclarationOnly && node scripts/copy-wasm.mjs",
-    "test": "vitest run",
+    "test": "npm run test:src && npm run test:dist",
+    "test:src": "vitest run",
+    "test:dist": "npm run build && node scripts/smoke-dist.mjs",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
     "prepublishOnly": "npm run build"

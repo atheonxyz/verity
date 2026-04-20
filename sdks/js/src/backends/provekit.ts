@@ -100,16 +100,42 @@ function parseJsonInputs(inputs: string): Record<string, unknown> {
   }
 }
 
+async function getNodeWasmAssetCandidates(filename: string): Promise<string[]> {
+  const [{ access }, { dirname, resolve }, { fileURLToPath }] = await Promise.all([
+    import("node:fs/promises"),
+    import("node:path"),
+    import("node:url"),
+  ]);
+
+  const moduleDir =
+    typeof __dirname === "string" ? __dirname : dirname(fileURLToPath(import.meta.url));
+
+  const candidates = [
+    resolve(moduleDir, "../wasm", filename),
+    resolve(moduleDir, "../../wasm", filename),
+  ];
+  const existing: string[] = [];
+
+  for (const candidate of candidates) {
+    try {
+      await access(candidate);
+      existing.push(candidate);
+    } catch {
+      // Try the next layout.
+    }
+  }
+
+  return (existing.length > 0 ? existing : candidates).filter(
+    (candidate, index, all) => all.indexOf(candidate) === index,
+  );
+}
+
 async function getWasmModuleSpecifiers(isNode: boolean): Promise<string[]> {
-  if (isNode && typeof __dirname === "string") {
-    const [{ resolve }, { pathToFileURL }] = await Promise.all([
-      import("node:path"),
-      import("node:url"),
-    ]);
-    return [
-      pathToFileURL(resolve(__dirname, "../wasm/provekit_wasm.js")).href,
-      pathToFileURL(resolve(__dirname, "../../wasm/provekit_wasm.js")).href,
-    ];
+  if (isNode) {
+    const { pathToFileURL } = await import("node:url");
+    return (await getNodeWasmAssetCandidates("provekit_wasm.js")).map(
+      (candidate) => pathToFileURL(candidate).href,
+    );
   }
 
   return [
@@ -133,43 +159,8 @@ async function importFirstAvailable(specifiers: string[]): Promise<any> {
 }
 
 async function getNodeWasmBinaryPath(): Promise<string> {
-  const { access } = await import("node:fs/promises");
-
-  if (typeof __dirname === "string") {
-    const { resolve } = await import("node:path");
-    const candidates = [
-      resolve(__dirname, "../wasm/provekit_wasm_bg.wasm"),
-      resolve(__dirname, "../../wasm/provekit_wasm_bg.wasm"),
-    ];
-
-    for (const candidate of candidates) {
-      try {
-        await access(candidate);
-        return candidate;
-      } catch {
-        // Try the next layout.
-      }
-    }
-
-    return candidates[candidates.length - 1];
-  }
-
-  const { fileURLToPath } = await import("node:url");
-  const candidates = [
-    fileURLToPath(new URL("../wasm/provekit_wasm_bg.wasm", import.meta.url)),
-    fileURLToPath(new URL("../../wasm/provekit_wasm_bg.wasm", import.meta.url)),
-  ];
-
-  for (const candidate of candidates) {
-    try {
-      await access(candidate);
-      return candidate;
-    } catch {
-      // Try the next layout.
-    }
-  }
-
-  return candidates[candidates.length - 1];
+  const candidates = await getNodeWasmAssetCandidates("provekit_wasm_bg.wasm");
+  return candidates[0];
 }
 
 // ---------------------------------------------------------------------------
